@@ -230,6 +230,213 @@ if deploy_bytes:
 >
 > 교육에서는 `'zip'`(범용)으로 받아서 Renode 시뮬레이션에 쓰고, 실습 보드에 맞는 타겟으로 다시 받아서 플래시하는 순서로 진행합니다.
 
+#### 실제 `deploy_target='zip'` 압축 해제 구조 (실습 예시)
+
+```
+my_model_cpp/                      ← C:\Users\Administrator\my_model_cpp
+├── CMakeLists.txt                 (458 bytes)  CMake 빌드 설정
+├── README.txt                     (1.2 KB)     프로젝트 개요
+│
+├── model-parameters/
+│   ├── model_metadata.h           (13.3 KB)    모델 메타데이터 (입출력 shape, 라벨 등)
+│   └── model_variables.h          (6.9 KB)     DSP → 학습 → 후처리 파이프라인 정의
+│
+├── tflite-model/
+│   ├── tflite-resolver.h          (2.1 KB)     필요 연산자 목록 (FullyConnected, Softmax)
+│   ├── tflite_learn_1072795_6.h   (3.2 KB)     .tflite 바이너리 INCBIN 포함, arena 크기
+│   ├── tflite_learn_1072795_6.cpp (1.8 KB)     구현체 (empty)
+│   ├── tflite_learn_1072795_6.tflite           ← 실제 양자화 모델 파일
+│   └── trained_model_ops_define.h (1.9 KB)     연산자 정의
+│
+└── edge-impulse-sdk/              ← Edge Impulse 추론 SDK (전체 포함)
+    ├── classifier/                추론 엔진 (TFLite Micro, EON 등)
+    │   └── inferencing_engines/   16개 엔진 지원 (tflite_micro, ethos, akida, tensorrt...)
+    ├── CMSIS/                     CMSIS-DSP + CMSIS-NN (ARM 가속 라이브러리)
+    ├── dsp/                       DSP 블록 (FFT, MFCC, spectral, image, speechpy...)
+    ├── porting/                   20+ 플랫폼 포팅 레이어
+    │   ├── espressif/             ESP32용 (ESP-NN + ESP-DSP)
+    │   ├── stm32-cubeai/          STM32CubeIDE용
+    │   ├── arduino/               Arduino용
+    │   ├── zephyr/                Zephyr RTOS용
+    │   └── ...                    (himax, silabs, renesas, nordic, ti 등)
+    └── tensorflow/lite/micro/     TFLite Micro 런타임 (~80개 op 커널)
+```
+
+**핵심 파일 분석:**
+
+| 파일 | 설명 |
+|------|------|
+| `tflite-resolver.h` | 모델에 필요한 연산자 = **FullyConnected + Softmax** (단 2개!) |
+| `tflite_learn_1072795_6.h` | Arena 크기 = **8819 bytes** (약 8.6 KB) |
+| `model_metadata.h` | 프로젝트명: esp32_cam, 입력: 784 floats, 출력: 10 classes |
+| `model_variables.h` | 파이프라인: raw feature(flatten) → TFLite NN → classification |
+
+> **프로젝트 정보:** Edge Impulse Studio에서 생성된 프로젝트 ID 1072795, MNIST 10-class 숫자 인식 모델입니다.
+
+---
+
+### C++ 라이브러리 사용법 (실제 보드에서 실행)
+
+#### 방법 1: STM32CubeIDE에 수동 이식 (STM32F411, 2일차)
+
+```
+1. STM32CubeIDE 실행 → 새 STM32F411RE 프로젝트 생성
+2. 탐색기에서 my_model_cpp/ 폴더 통째로 프로젝트 폴더로 복사
+3. CubeIDE에서 프로젝트 우클릭 → Properties → C/C++ Build → Settings
+4. Include paths에 다음 추가:
+     my_model_cpp/
+     my_model_cpp/tflite-model/
+     my_model_cpp/model-parameters/
+     my_model_cpp/edge-impulse-sdk/
+     my_model_cpp/edge-impulse-sdk/CMSIS/Core/Include/
+     my_model_cpp/edge-impulse-sdk/CMSIS/NN/Include/
+     my_model_cpp/edge-impulse-sdk/CMSIS/DSP/Include/
+     my_model_cpp/edge-impulse-sdk/porting/stm32-cubeai/
+5. Source files에 tflite-model/*.cpp 추가 (디버그 출력용 porting 파일도 추가)
+6. 아래 main.c 작성
+7. 빌드 → ST-Link로 플래시 → UART(115200 baud)로 결과 확인
+```
+
+#### 방법 2: ESP32-IDF (ESP32, 1일차)
+
+```
+# 1. 새 ESP32-IDF 프로젝트 생성
+idf.py create-project mnist_esp32
+cd mnist_esp32
+
+# 2. my_model_cpp/ 통째로 프로젝트 루트에 복사
+
+# 3. CMakeLists.txt 수정 (main/CMakeLists.txt)
+#   idf_component_register(SRCS "main.c"
+#                          INCLUDE_DIRS
+#                            "../my_model_cpp"
+#                            "../my_model_cpp/tflite-model"
+#                            "../my_model_cpp/model-parameters"
+#                            "../my_model_cpp/edge-impulse-sdk"
+#                            "../my_model_cpp/edge-impulse-sdk/porting/espressif")
+
+# 4. 아래 main.c 작성
+# 5. 빌드 및 플래시
+idf.py set-target esp32
+idf.py build
+idf.py flash monitor
+```
+
+#### 공통: main.c 코드
+
+```c
+/* main.c — MCU에서 MNIST 추론 실행 */
+#include <stdio.h>
+#include <stdlib.h>
+#include "model-parameters/model_metadata.h"
+#include "model-parameters/model_variables.h"
+#include "edge-impulse-sdk/classifier/ei_run_classifier.h"
+#include "edge-impulse-sdk/dsp/numpy.hpp"
+
+/* PC에서 추출한 MNIST 테스트 이미지 (784 floats, 0~1)
+   Colab에서 numpy.save()로 추출한 값을 hex array로 변환하여 포함 */
+static const float test_image[784] = {
+    /* 여기에 실제 MNIST 테스트 이미지 데이터를 넣음 */
+    /* PC에서 아래 Python 코드로 생성: */
+    /* np.savetxt('image_hex.txt', x_test[0].flatten(), fmt='%.8f') */
+};
+
+/* Edge Impulse porting layer 필수 함수 */
+void ei_printf(const char *format, ...) {
+    char buf[256];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buf, sizeof(buf), format, args);
+    va_end(args);
+    printf("%s", buf);  /* MCU의 printf(UART)로 출력 */
+}
+
+int main(void) {
+    /* 시스템 초기화 (HAL, SysTick, UART)는 CubeIDE/IDF 자동 생성 코드 사용 */
+    printf("\n=== MNIST Edge Impulse Inference ===\n");
+    printf("Model: %s\n", EI_CLASSIFIOR_PROJECT_NAME);
+
+    ei_impulse_result_t result = { 0 };
+    signal_t signal;
+    int16_t buf[EI_CLASSIFIER_RAW_SAMPLE_COUNT] = { 0 };
+
+    /* float → int16 변환 (Edge Impulse EON 런타임 입력 형식) */
+    for (size_t i = 0; i < EI_CLASSIFIER_RAW_SAMPLE_COUNT; i++) {
+        buf[i] = (int16_t)(test_image[i] * 32767.0f);
+    }
+    numpy::signal_from_buffer(buf, EI_CLASSIFIER_RAW_SAMPLE_COUNT, &signal);
+
+    /* 추론 실행 */
+    printf("Running inference...\n");
+    EI_IMPULSE_ERROR err = run_classifier(&signal, &result, false);
+
+    if (err != EI_IMPULSE_OK) {
+        printf("ERROR: %d\n", err);
+        while (1);
+    }
+
+    /* 결과 출력 */
+    printf("\n=== Result ===\n");
+    printf("Prediction: %s (%.4f)\n",
+           ei_classifier_inferencing_categories[result.classification[0].label],
+           result.classification[0].value);
+
+    printf("Timing: %lu us\n",
+           (unsigned long)result.timing.classification_us);
+
+    while (1);
+}
+```
+
+#### PC 테스트 데이터를 MCU에 전달하는 방법
+
+```
+방법 A: 배열로 하드코딩 (위 main.c 방식)
+  Python: np.savetxt('image_hex.txt', x_test[0].flatten(), fmt='%.8f')
+  → 생성된 텍스트를 C 배열 리터럴로 변환하여 main.c에 포함
+
+방법 B: UART로 실시간 전송 (실습용)
+  PC (Python)                    MCU (STM32/ESP32)
+     │                                │
+     │  UART: 784 floats (CSV or bin) │
+     │───────────────────────────────>│
+     │                                │ run_classifier()
+     │  UART: result label + prob     │
+     │<───────────────────────────────│
+     │                                │
+
+방법 C: SD 카드 (실전용)
+  MNIST 테스트 데이터를 SD 카드에 .bin 파일로 저장
+  MCU가 FATFS로 읽어서 추론 → 결과를 SD 카드에 로그로 저장
+```
+
+#### 플랫폼별 UART 전송 코드 (방법 B)
+
+```python
+# PC Python: UART로 MNIST 이미지 전송 → 결과 수신
+import serial
+import struct
+import numpy as np
+from tensorflow import keras
+
+# MNIST 테스트 데이터 로드
+(_, _), (x_test, y_test) = keras.datasets.mnist.load_data()
+x_test = x_test.reshape(-1, 784).astype('float32') / 255.0
+
+# UART 연결 (보드별 포트 상이)
+ser = serial.Serial('COM3', 115200, timeout=5)  # Windows
+# ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=5)  # Linux
+
+for i in range(10):  # 10개 테스트
+    # float array → binary 전송
+    data = x_test[i].astype('<f4').tobytes()  # little-endian float32
+    ser.write(data)
+
+    # 결과 수신
+    result = ser.readline().decode().strip()
+    print(f"Image {i}: 실제={y_test[i]}, 추론={result}")
+```
+
 ### 실행 결과
 
 #### list_profile_devices() 성공 (API 키 정상)
