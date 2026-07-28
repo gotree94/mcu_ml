@@ -154,37 +154,61 @@ print("\n💾 모델 저장 완료: mnist_pc_model.h5")
 ### 2.2 실행 결과 예시
 
 ```
+2026-07-29 03:25:07.895998: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-07-29 03:25:09.945552: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
 [1/5] MNIST 데이터 로드 중...
   학습 데이터: (60000, 28, 28), 레이블: (60000,)
   테스트 데이터: (10000, 28, 28), 레이블: (10000,)
   픽셀 범위: [0.0, 1.0]
 
 [2/5] 모델 정의 중...
+C:\ProgramData\anaconda3\Lib\site-packages\keras\src\layers\core\input_layer.py:27: UserWarning: Argument `input_shape` is deprecated. Use `shape` instead.
+  warnings.warn(
+2026-07-29 03:25:17.149392: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
 Model: "sequential"
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
-┃ Layer (type)                   ┃ Output Shape   ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
-│ flatten (Flatten)              │ (None, 784)    │
-├────────────────────────────────┼────────────────┤
-│ dense (Dense)                  │ (None, 128)    │
-├────────────────────────────────┼────────────────┤
-│ dense_1 (Dense)                │ (None, 64)     │
-├────────────────────────────────┼────────────────┤
-│ dense_2 (Dense)                │ (None, 10)     │
-└────────────────────────────────┴────────────────┘
-Total params: 109,386
-Trainable params: 109,386
-Non-trainable params: 0
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
+┃ Layer (type)                         ┃ Output Shape                ┃         Param # ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
+│ flatten (Flatten)                    │ (None, 784)                 │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense (Dense)                        │ (None, 128)                 │         100,480 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense_1 (Dense)                      │ (None, 64)                  │           8,256 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense_2 (Dense)                      │ (None, 10)                  │             650 │
+└──────────────────────────────────────┴─────────────────────────────┴─────────────────┘
+ Total params: 109,386 (427.29 KB)
+ Trainable params: 109,386 (427.29 KB)
+ Non-trainable params: 0 (0.00 B)
+
+[3/5] 모델 컴파일 중...
 
 [4/5] 모델 학습 시작...
-Epoch 1/20 - loss: 0.3531 - accuracy: 0.8994 - val_loss: 0.1750 - val_accuracy: 0.9480
-Epoch 2/20 - loss: 0.1407 - accuracy: 0.9582 - val_loss: 0.1211 - val_accuracy: 0.9636
-...
-Epoch 8/20 - loss: 0.0190 - accuracy: 0.9939 - val_loss: 0.0824 - val_accuracy: 0.9773
+Epoch 1/20
+750/750 - 4s - 6ms/step - accuracy: 0.9113 - loss: 0.3065 - val_accuracy: 0.9578 - val_loss: 0.1505
+Epoch 2/20
+750/750 - 3s - 4ms/step - accuracy: 0.9626 - loss: 0.1260 - val_accuracy: 0.9659 - val_loss: 0.1147
+Epoch 3/20
+750/750 - 3s - 4ms/step - accuracy: 0.9741 - loss: 0.0853 - val_accuracy: 0.9668 - val_loss: 0.1133
+Epoch 4/20
+750/750 - 3s - 3ms/step - accuracy: 0.9798 - loss: 0.0654 - val_accuracy: 0.9722 - val_loss: 0.0963
+Epoch 5/20
+750/750 - 3s - 4ms/step - accuracy: 0.9844 - loss: 0.0503 - val_accuracy: 0.9703 - val_loss: 0.0981
+Epoch 6/20
+750/750 - 3s - 3ms/step - accuracy: 0.9877 - loss: 0.0401 - val_accuracy: 0.9721 - val_loss: 0.0971
+Epoch 7/20
+750/750 - 3s - 3ms/step - accuracy: 0.9898 - loss: 0.0317 - val_accuracy: 0.9730 - val_loss: 0.0963
 
-✅ 학습 완료! 소요 시간: 28.53초
+✅ 학습 완료! 소요 시간: 20.04초
 
-📊 PC 모델 (float32) 테스트 정확도: 0.9772 (97.72%)
+[5/5] 테스트 세트 평가 중...
+
+📊 PC 모델 (float32) 테스트 정확도: 0.9716 (97.16%)
+   테스트 손실: 0.0903
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`.
+
+💾 모델 저장 완료: mnist_pc_model.h5
 ```
 
 ### 2.3 모델 구조 설명
