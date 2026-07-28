@@ -1213,5 +1213,385 @@ TFLite Int8 (MCU용)       106.8       97.48       0.146 ms
 
 ---
 
-> 이 실습은 **일반 ML과 TinyML의 차이를 직접 경험**하기 위해 설계되었습니다.
-> MCU에 모델을 실제로 배포할 때는 **TFLite Micro** 또는 **Edge Impulse**를 활용하세요.
+## 부록 B: mnist.npz → MCU 시리얼 전송
+
+### B.1 mnist.npz 구조
+
+Keras 설치 시 포함되는 `mnist.npz` 파일은 numpy 배열을 그대로 저장한 파일입니다.
+
+```
+파일: mnist.npz  (위치: ~/.keras/datasets/mnist.npz)
+ ├── x_train: (60000, 28, 28)  uint8  → 60,000장 학습 이미지
+ ├── y_train: (60000,)          uint8  → 레이블
+ ├── x_test:  (10000, 28, 28)  uint8  → 10,000장 테스트 이미지
+ └── y_test:  (10000,)          uint8  → 레이블
+
+각 이미지: 28 × 28 = 784바이트 (픽셀 값 0~255)
+```
+
+> MNIST 데이터는 `keras.datasets.mnist.load_data()` 호출 시 자동으로 `~/.keras/datasets/mnist.npz`에 캐싱됩니다.
+> 이미 존재하면 추가 다운로드 없이 로컬 파일을 그대로 사용합니다.
+
+---
+
+### B.2 numpy 배열 → 이미지 파일 변환
+
+```python
+# mnist_npz_to_image.py
+# mnist.npz에서 개별 이미지를 추출하여 BMP 파일로 저장
+
+import numpy as np
+from PIL import Image
+import os
+
+# mnist.npz 파일 직접 로드
+npz_path = os.path.expanduser('~/.keras/datasets/mnist.npz')
+data = np.load(npz_path)
+
+x_test = data['x_test']  # (10000, 28, 28) uint8
+y_test = data['y_test']  # (10000,) uint8
+
+print(f"데이터 shape: {x_test.shape}")
+print(f"픽셀 범위: [{x_test.min()}, {x_test.max()}]")
+print(f"데이터 타입: {x_test.dtype}")
+
+# 출력 폴더 생성
+out_dir = 'mnist_samples'
+os.makedirs(out_dir, exist_ok=True)
+
+# 여러 장 추출하여 저장
+for idx in [0, 5, 42, 128, 256, 512, 1024, 2048]:
+    image = x_test[idx]
+    label = int(y_test[idx])
+    filename = f'{out_dir}/sample_{idx}_label_{label}.bmp'
+    img = Image.fromarray(image, mode='L')  # 'L' = 8-bit grayscale
+    img.save(filename)
+    print(f"  저장: {filename} (크기: {image.shape}, 값 범위: [{image.min()}, {image.max()}])")
+
+print(f"\n✅ {out_dir} 폴더에 샘플 이미지 저장 완료")
+```
+
+---
+
+### B.3 numpy 배열 → raw bytes (MCU 시리얼 전송용)
+
+```python
+# mnist_to_serial_format.py
+# MCU 시리얼 전송을 위한 다양한 포맷 변환
+
+import numpy as np
+import base64
+from PIL import Image
+
+# mnist.npz 로드
+data = np.load('mnist.npz')  # 또는 ~/.keras/datasets/mnist.npz
+x_test = data['x_test']
+y_test = data['y_test']
+
+idx = 0
+image = x_test[idx]   # (28, 28) uint8
+label = int(y_test[idx])
+
+print(f"[샘플 #{idx}] 정답 레이블: {label}")
+print(f"  이미지 shape: {image.shape}")
+print(f"  픽셀 범위: [{image.min()}, {image.max()}]")
+print()
+
+# ─── 방법 1: Raw Binary (784 bytes) ───────────────────────────
+# MCU 시리얼 전송에 가장 적합 (크기 최소)
+raw_bytes = image.tobytes()
+print(f"[방법 1] Raw Binary")
+print(f"  크기: {len(raw_bytes)} bytes")
+print(f"  처음 20바이트: {list(raw_bytes[:20])}")
+print()
+
+# ─── 방법 2: CSV 텍스트 ──────────────────────────────────────
+# 사람이 읽기 가능, 디버깅용
+csv_line = ','.join(map(str, image.flatten()))
+print(f"[방법 2] CSV 텍스트")
+print(f"  길이: {len(csv_line)} chars")
+print(f"  처음 100자: {csv_line[:100]}...")
+print()
+
+# ─── 방법 3: Base64 인코딩 ────────────────────────────────────
+# 텍스트 기반 시리얼 프로토콜에 적합
+b64 = base64.b64encode(raw_bytes).decode('ascii')
+print(f"[방법 3] Base64")
+print(f"  길이: {len(b64)} chars ({len(raw_bytes)} bytes → {len(b64)} chars)")
+print(f"  앞부분: {b64[:60]}...")
+print()
+
+# ─── 방법 4: HEX 문자열 ───────────────────────────────────────
+# 디버깅용 (16진수 표시)
+hex_str = raw_bytes.hex()
+print(f"[방법 4] HEX 문자열")
+print(f"  길이: {len(hex_str)} chars")
+print(f"  앞부분: {hex_str[:60]}...")
+print()
+
+# ─── 방법 5: BMP 파일 저장 (시각 확인) ──────────────────────
+img = Image.fromarray(image, mode='L')
+img.save(f'sample_{idx}_label_{label}.bmp')
+print(f"[방법 5] BMP 이미지 저장: sample_{idx}_label_{label}.bmp")
+```
+
+---
+
+### B.4 MCU로 시리얼 전송 (PC → ESP32 → 추론 → 결과 수신)
+
+#### 시리얼 프로토콜 설계
+
+```
+PC → MCU: [0xAA (HEADER)] [LABEL: 1byte] [DATA: 784bytes] [0xBB (FOOTER)] [CHECKSUM: 1byte]
+MCU → PC: [0xCC (RESPONSE)] [PREDICTION: 1byte]
+```
+
+| 필드 | 크기 | 설명 |
+|------|------|------|
+| `0xAA` | 1 byte | 패킷 시작 (Header) |
+| LABEL | 1 byte | 실제 정답 숫자 (확인용) |
+| DATA | 784 bytes | 28×28 픽셀, 각 1 byte (0~255) |
+| `0xBB` | 1 byte | 패킷 끝 (Footer) |
+| CHECKSUM | 1 byte | 간단한 XOR 체크섬 |
+| `0xCC` | 1 byte | 응답 헤더 |
+| PREDICTION | 1 byte | MCU가 추론한 결과 |
+
+#### PC 측 전송 코드 (Python)
+
+```python
+# serial_send_mnist.py
+# mnist.npz → 시리얼 → MCU 전송 및 결과 수신
+
+import serial
+import numpy as np
+import time
+
+# 설정
+PORT = 'COM3'       # 실제 포트로 변경
+BAUD = 115200
+NUM_SAMPLES = 50    # 전송할 이미지 수
+
+# mnist.npz 로드
+data = np.load('mnist.npz')
+x_test = data['x_test']
+y_test = data['y_test']
+
+# 시리얼 연결
+ser = serial.Serial(PORT, BAUD, timeout=5)
+time.sleep(2)  # MCU 리셋 대기
+print(f"✅ 시리얼 연결: {PORT} @ {BAUD}")
+
+correct = 0
+total = NUM_SAMPLES
+
+for i in range(total):
+    image = x_test[i]
+    label = int(y_test[i])
+    raw = image.tobytes()  # 784 bytes
+
+    # 체크섬 계산 (XOR)
+    checksum = 0
+    for b in raw:
+        checksum ^= b
+
+    # 패킷 전송
+    packet = b'\xAA' + bytes([label]) + raw + b'\xBB' + bytes([checksum])
+    ser.write(packet)
+
+    # 응답 수신
+    resp = ser.read(2)  # 0xCC + prediction
+
+    if len(resp) == 2 and resp[0] == 0xCC:
+        prediction = resp[1]
+        if prediction == label:
+            correct += 1
+            status = '✅'
+        else:
+            status = '❌'
+        print(f"  [{i+1}/{total}] 실제={label}, 예측={prediction}  {status}")
+    else:
+        print(f"  [{i+1}/{total}] 응답 오류: {resp.hex() if resp else 'TIMEOUT'}")
+
+    time.sleep(0.05)  # MCU 처리 시간
+
+# 결과 요약
+print(f"\n{'='*40}")
+print(f"📊 전송 완료: {total}장")
+print(f"   정확도: {correct}/{total} = {correct/total*100:.1f}%")
+print(f"   (참고: PC TFLite Int8 정확도: ~97.5%)")
+
+ser.close()
+```
+
+---
+
+#### MCU 측 수신 코드 (ESP32, Arduino)
+
+```cpp
+// mnis_serial_receiver.ino
+// PC로부터 시리얼로 MNIST 이미지를 받아 TFLite Micro 추론 후 결과 반환
+
+#include <TensorFlowLite_ESP32.h>
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/all_ops_resolver.h"
+
+// TFLite 모델 (mnist_int8_quantized.tflite 배열)
+extern const unsigned char mnist_model[];
+extern const int mnist_model_len;
+
+// TFLite 설정
+constexpr int kTensorArenaSize = 100 * 1024;  // 100KB
+uint8_t tensor_arena[kTensorArenaSize];
+
+tflite::MicroInterpreter* interpreter = nullptr;
+TfLiteTensor* input = nullptr;
+TfLiteTensor* output = nullptr;
+
+// 버퍼
+#define IMG_SIZE 784
+uint8_t img_buffer[IMG_SIZE];
+
+void setup() {
+    Serial.begin(115200);
+    Serial.println("MNIST Serial Receiver Ready");
+
+    // TFLite Micro 초기화
+    static tflite::AllOpsResolver resolver;
+    static tflite::MicroInterpreter static_interpreter(
+        mnist_model, resolver, tensor_arena, kTensorArenaSize);
+    interpreter = &static_interpreter;
+
+    input = interpreter->input(0);
+    output = interpreter->output(0);
+
+    if (interpreter->AllocateTensors() != kTfLiteOk) {
+        Serial.println("TENSOR ALLOCATION FAILED");
+        while (1);
+    }
+    Serial.println("TFLite Micro Ready");
+}
+
+void loop() {
+    // 헤더 대기 (0xAA)
+    while (Serial.available() && Serial.read() != 0xAA);
+
+    if (!Serial.available()) return;
+
+    // 레이블 읽기 (선택)
+    uint8_t label = Serial.read();
+
+    // 이미지 데이터 읽기 (784 bytes)
+    int received = 0;
+    unsigned long timeout = millis() + 2000;  // 2초 타임아웃
+
+    while (received < IMG_SIZE) {
+        if (Serial.available()) {
+            img_buffer[received++] = Serial.read();
+        }
+        if (millis() > timeout) {
+            Serial.println("TIMEOUT");
+            return;
+        }
+    }
+
+    // 푸터 + 체크섬 읽기
+    uint8_t footer = Serial.read();
+    uint8_t checksum = Serial.read();
+
+    // 체크섬 검증
+    uint8_t calc = 0;
+    for (int i = 0; i < IMG_SIZE; i++) calc ^= img_buffer[i];
+
+    if (calc != checksum) {
+        Serial.write(0xCC);  // 응답 헤더
+        Serial.write(0xFF);  // 체크섬 오류
+        return;
+    }
+
+    // 입력 텐서에 이미지 복사
+    // TFLite Int8 모델 입력: [-128, 127] 스케일
+    int8_t* in_data = interpreter->input(0)->data.int8;
+    for (int i = 0; i < IMG_SIZE; i++) {
+        // uint8 [0,255] → int8 [-128,127]
+        in_data[i] = (int8_t)((int)img_buffer[i] - 128);
+    }
+
+    // 추론
+    if (interpreter->Invoke() != kTfLiteOk) {
+        Serial.write(0xCC);
+        Serial.write(0xFE);  // 추론 오류
+        return;
+    }
+
+    // 결과 추출
+    int8_t* out_data = interpreter->output(0)->data.int8;
+    int prediction = 0;
+    int8_t max_val = out_data[0];
+    for (int i = 1; i < 10; i++) {
+        if (out_data[i] > max_val) {
+            max_val = out_data[i];
+            prediction = i;
+        }
+    }
+
+    // 결과 전송
+    Serial.write(0xCC);        // 응답 헤더
+    Serial.write(prediction);  // 예측 숫자 (0~9)
+}
+```
+
+---
+
+### B.5 전송 테스트 및 확인
+
+#### 실행 순서
+
+```bash
+# 1. mnist.npz → 이미지 파일 추출 (시각 확인)
+python mnist_npz_to_image.py
+
+# 2. MCU 펌웨어 업로드 (Arduino IDE)
+#    mnis_serial_receiver.ino → ESP32 업로드
+
+# 3. PC → MCU 시리얼 전송
+python serial_send_mnist.py
+
+# 예상 출력:
+#   [1/50] 실제=7, 예측=7  ✅
+#   [2/50] 실제=2, 예측=2  ✅
+#   [3/50] 실제=1, 예측=1  ✅
+#   [4/50] 실제=0, 예측=0  ✅
+#   [5/50] 실제=4, 예측=9  ❌  ← TFLite 양자화 손실
+#   ...
+#   ========================================
+#   📊 전송 완료: 50장
+#      정확도: 48/50 = 96.0%
+```
+
+#### 포트 확인 방법
+
+```bash
+# Windows
+python -c "import serial.tools.list_ports; print([p.device for p in serial.tools.list_ports.comports()])"
+# → ['COM1', 'COM3', ...]
+```
+
+#### 주의사항
+
+| 문제 | 원인 | 해결 |
+|------|------|------|
+| 타임아웃 | 포트/보레이트 불일치 | `PORT`, `BAUD` 값 확인 |
+| 체크섬 오류 | 데이터 손상 | 시리얼 케이블 품질 확인, 낮은 보레이트 시도 |
+| 모두 오답 | 모델 바이너리 누락 | TFLite 모델을 ESP32 Flash에 포함했는지 확인 |
+| 응답 없음 | MCU 리셋 필요 | `time.sleep(2)` 후 전송 시작 |
+
+---
+
+### B.6 파일 목록
+
+| 파일 | 설명 |
+|------|------|
+| `mnist_npz_to_image.py` | mnist.npz → BMP 이미지 파일 변환 |
+| `mnist_to_serial_format.py` | mnist.npz → raw/CSV/Base64/HEX 변환 |
+| `serial_send_mnist.py` | PC → MCU 시리얼 전송 및 결과 수신 |
+| `mnis_serial_receiver.ino` | ESP32 수신 및 TFLite Micro 추론 |
