@@ -19,7 +19,7 @@
 | 12:30-13:30 | 점심 | | |
 | 13:30-14:30 | **ESP32 아키텍처 이해** | Xtensa LX6 듀얼코어(Core0 WiFi Core1 App), <br>SRAM 320KB 제약, Flash 4MB, <br>주변장치 공유 구조, FreeRTOS xTaskCreatePinnedToCore |
 | 14:30-16:00 | **ESP32-CAM + Edge Impulse** | ESP32-CAM 셋업, 웹서버 구동, <br>EloquentEsp32Cam 데이터 수집, <br>Edge Impulse 프로젝트 → 학습 → TFLite 모델 다운로드 |
-| 16:00-17:00 | **ESP32 TFLite Micro 포팅** | PC 모델(Int8 114.9KB) → ESP32 SRAM(~320KB) 적합성 판단, Tensor Arena 설계, <br>시리얼 프로토콜로 이미지 전송 → 추론 → 결과 수신 |
+| 16:00-17:00 | **ESP32 TFLite Micro 포팅** | PC 모델(Int8 114.9KB) → ESP32 SRAM(~320KB) 적합성 판단, <br>Tensor Arena 설계, 시리얼 프로토콜로 이미지 전송 → 추론 → 결과 수신 |
 
 **1일차 핵심 포인트**:
 - TinyML = MCU급 디바이스에서의 ML 추론 (클라우드 없이)
