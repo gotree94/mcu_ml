@@ -185,12 +185,45 @@ HTTP response body: The API key you provided has insufficient permissions
 > **원인:** API 키 역할이 `ingestion_deployment` → `profile()`은 `admin` 역할 필요
 > **해결:** Edge Impulse Studio → Dashboard → API Keys → Create Key → Role=**Admin**
 
-#### profile() 성공 시 예상 출력 (admin 권한 키 사용)
+#### profile() 실제 출력 (admin 권한 키, Float32, MNIST 3-layer Dense)
 
 ```
-RAM: 12.2 KB | ROM: 48.5 KB | 추론 시간: 3.2 ms (Cortex-M4F @ 80MHz)
-→ MCU에 충분히 탑재 가능한 크기입니다.
+Target results for float32:
+===========================
+{
+    "variant": "float32",
+    "device": "cortex-m4f-80mhz",
+    "tfliteFileSizeBytes": 441364,          # 모델 파일 크기
+    "isSupportedOnMcu": true,
+    "memory": {
+        "tflite": {
+            "ram": 8995,                    # 8.8 KB
+            "rom": 473592,                  # 462.5 KB
+            "arenaSize": 8819
+        },
+        "eon": {
+            "ram": 6272,                    # 6.1 KB
+            "rom": 888000,                  # 867.2 KB
+            "arenaSize": 4608
+        }
+    },
+    "timePerInferenceMs": 5,                # Cortex-M4F @ 80MHz
+    "hasPerformance": true
+}
+
+Performance on device types:
+----------------------------
+| 타겟 | 추론 시간 | RAM | ROM | 비고 |
+|------|----------|-----|-----|------|
+| Low-end MCU (Cortex-M0+ @ 40MHz) | 167 ms | 8.7 KB | 466.9 KB | TFLite |
+| High-end MCU (Cortex-M7 @ 240MHz) | **2 ms** | 9.0 KB | 473.6 KB | TFLite |
+| Cortex-M4F @ 80MHz | **5 ms** | 8.8 KB | 462.5 KB | TFLite |
+| MPU (Cortex-A72 @ 1.5GHz) | 1 ms | — | 441.4 KB | |
 ```
+
+> **ESP32 탑재 불가:** Float32 ROM 462.5KB가 ESP32 가용 SRAM(320KB) 초과.
+> **STM32F411 탑재:** ROM 462.5KB < Flash 512KB ✅, RAM 8.8KB < SRAM 128KB ✅
+> **Int8 양자화 필요:** ESP32 탑재를 위해 Int8 변환 후 프로파일링 재시도 필요
 
 ### 학습 포인트
 - 동일한 모델이 Cortex-M4(MCU)에서 차지하는 RAM/ROM을 시뮬레이션
@@ -203,40 +236,315 @@ RAM: 12.2 KB | ROM: 48.5 KB | 추론 시간: 3.2 ms (Cortex-M4F @ 80MHz)
 
 **URL**: https://renode.io | **GitHub**: https://github.com/renode/renode
 
-Renode는 실제 MCU 하드웨어를 시뮬레이션하는 오픈소스 프레임워크입니다.
-TFLite Micro와 연동되어, **실제 바이너리**를 가상 MCU에서 실행할 수 있습니다.
+Renode는 실제 MCU를 에뮬레이션하는 오픈소스 프레임워크로,
+Edge Impulse `profile()`의 **추정치**와 달리 **실제 컴파일된 바이너리**를 가상 MCU에서 실행하여 정확한 RAM/ROM/추론 시간을 측정합니다.
 
-### 지원 플랫폼
-- Arduino Nano 33 BLE Sense (nRF52840)
-- LiteX VexRiscv (RISC-V)
-- STM32 시리즈
-- ESP32 (제한적)
-
-### 빠른 시작 (Google Colab에서 실행)
-
-```python
-# Colab에서 Renode + TFLite Micro 실행
-# Harvard edX TinyML 코스에서 사용되는 방식
-
-# 1. Renode 설치
-!wget https://github.com/renode/renode/releases/download/v1.13.0/renode-1.13.0-linux-portable.zip
-!unzip renode-1.13.0-linux-portable.zip
-
-# 2. 매직 원드 데모 실행 (가속도계 제스처 인식)
-!git clone https://github.com/antmicro/litex-vexriscv-tensorflow-lite-demo
-%cd litex-vexriscv-tensorflow-lite-demo/renode
-!./renode litex-vexriscv-tflite.resc -e "start"
+```
+Edge Impulse profile()  →  추정치 (서버 사이드 시뮬레이션)
+                    ↓
+Renode + TFLite Micro →  실제 바이너리 실행 (PC에서 MCU 동작 재현)
+                    ↓
+실제 보드            →  하드웨어 성능 (최종 검증)
 ```
 
-### 실습 가능 항목
+### 한 줄 요약
 
-| 실습 | 내용 |
-|------|------|
-| Magic Wand | 가속도계 제스처 인식 (원, 기울기 등) |
-| Person Detection | 사람 감지 (이미지 분류) |
-| Speech Detection | 음성 감지 |
-| 시리얼 UART 출력 | 가상 센서 데이터 → 추론 결과 확인 |
-| 메모리 분석 | MCU 메모리 사용량 실시간 관찰 |
+> **Edge Impulse** = 예산/타겟 선정용 (30초), **Renode** = 상세 검증용 (5분), **실제 보드** = 최종 확인
+
+### 작동 원리
+
+```
+PC Python (Colab)
+    │
+    ├── Cell 1: Renode + arm-none-eabi-gcc 설치
+    ├── Cell 2: Edge Impulse C++ 라이브러리 압축 풀기
+    ├── Cell 3: MNIST C 코드 작성 (TFLite Micro API 사용)
+    ├── Cell 4: 크로스 컴파일 (arm-none-eabi-gcc → .elf)
+    ├── Cell 5: Renode Python API로 STM32F411 시뮬레이션
+    └── Cell 6: 결과 출력 (RAM/ROM/추론 시간)
+```
+
+### Cell-by-Cell Colab 실행 코드
+
+```python
+# ═══════════════════════════════════════════════
+# Cell 1: Renode + ARM GCC 설치
+# ═══════════════════════════════════════════════
+!wget -q https://github.com/renode/renode/releases/download/v1.15.3/renode-1.15.3-linux-portable.tar.gz
+!tar -xzf renode-1.15.3-linux-portable.tar.gz
+!pip install -q pyrenode3
+
+# ARM 크로스 컴파일러 설치 (Colab 환경)
+!apt-get update -qq && apt-get install -y -qq gcc-arm-none-eabi 2>/dev/null | tail -1
+!arm-none-eabi-gcc --version | head -1
+
+# ═══════════════════════════════════════════════
+# Cell 2: Edge Impulse C++ 라이브러리 준비
+# ═══════════════════════════════════════════════
+# PC에서 다운로드한 my_model_cpp.zip을 Colab에 업로드
+# 또는 wget으로 직접 다운로드 (API 키 필요, 데모용)
+!unzip -q my_model_cpp.zip -d edge_impulse_model
+!ls -R edge_impulse_model/
+# 출력 예:
+#   edge_impulse_model/
+#   ├── tflite-model/
+#   │   ├── model.tflite        # 양자화된 TFLite 모델
+#   │   ├── model_metadata.h    # 메타데이터
+#   │   ├── model_parameters.h  # 입력/출력 shape
+#   │   ├── model.h             # main 헤더
+#   │   └── model.cpp           # 구현체
+#   └── ...
+
+# ═══════════════════════════════════════════════
+# Cell 3: MNIST 테스트 C 코드
+# ═══════════════════════════════════════════════
+%%writefile mnist_test.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "edge_impulse_model/tflite-model/model.h"
+
+// MNIST 28x28 = 784 픽셀, float 0~1
+// 여기서는 3번 샘플 (숫자 '3')을 하드코딩
+// 실제로는 Colab에서 numpy 테스트 데이터를 추출해서 사용
+static const float test_image[784] = {
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0.01176471,0.07058824,0.07058824,0.07058824,0.49411765,0.53333336,0.6862745,0.10196079,0.6509804,1.0,0.96862745,0.49803922,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0.11764706,0.14117648,0.36862746,0.6039216,0.6666667,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.88235295,0.6745098,0.99215686,0.9490196,0.7647059,0.2509804,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0.19215687,0.93333334,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.9843137,0.36470588,0.32156864,0.32156864,0.21960784,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0.07058824,0.85882354,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.6392157,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0.21568628,0.6745098,0.8862745,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.95686275,0.52156866,0.04313726,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.33333334,0.4862745,0.6039216,0.6666667,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.8862745,0.5686275,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.3372549,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.54509807,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.11372549,0.93333334,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.95686275,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.9843137,0.8039216,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.27058825,0,0.23921569,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0.23921569,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0.23921569,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0.23921569,0.99215686,0.32156864,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.41568628,0.07450981,0.23921569,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.23921569,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.95686275,0.04313726,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.81960784,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.81960784,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.81960784,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.23921569,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.81960784,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.04313726,0.8156863,0.9647059,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.99215686,0.6901961,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.14117648,0.11764706,0.11764706,0.11764706,0.11764706,0.11764706,0.00392157,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+};
+
+int main() {
+    printf("\n=== Renode MNIST TFLite Inference Test ===\n\n");
+    printf("MCU: STM32F411 (Cortex-M4F @ 100MHz)\n");
+    printf("Model: MNIST 3-layer Dense (784→128→64→10)\n\n");
+
+    // 1. TFLite 모델 로드
+    // Edge Impulse가 생성한 C++ 라이브러리는 정적 바이너리로 모델 포함
+    // TFLite Micro Interpreter 초기화
+    printf("[1] Loading TFLite model...\n");
+
+    // Edge Impulse의 ei_classifier_inferencing_api 사용
+    ei_impulse_result_t result = {0};
+    signal_t signal;
+    int16_t buf[784];
+
+    // float → int16 변환 (Edge Impulse EON 런타임은 int16 입력 사용)
+    for (int i = 0; i < 784; i++) {
+        buf[i] = (int16_t)(test_image[i] * 32767.0f);
+    }
+    numpy::signal_from_buffer(buf, 784, &signal);
+
+    // 2. 추론 실행
+    printf("[2] Running inference...\n");
+    EI_IMPULSE_ERROR err = run_classifier(&signal, &result, false);
+    if (err != EI_IMPULSE_OK) {
+        printf("ERROR: run_classifier returned %d\n", err);
+        return 1;
+    }
+    printf("[2] Inference complete.\n\n");
+
+    // 3. 결과 출력
+    printf("========== Classification Result ==========\n");
+    printf("  Predicted digit: %d\n", result.classification[0].label);
+    printf("  Confidence:      %.4f (%.2f%%)\n\n",
+           result.classification[0].value,
+           result.classification[0].value * 100.0f);
+
+    // 상위 3개 클래스 출력
+    printf("Top-3 predictions:\n");
+    for (int i = 0; i < 3 && i < EI_CLASSIFIER_LABEL_COUNT; i++) {
+        printf("  %d: %.4f (%.2f%%)\n",
+               result.classification[i].label,
+               result.classification[i].value,
+               result.classification[i].value * 100.0f);
+    }
+
+    // 4. 타이밍 정보
+    printf("\n========== Performance Metrics ==========\n");
+    printf("  Classification time: %lu us\n",
+           (unsigned long)result.timing.classification_us);
+    printf("  Anomaly detection:   %lu us\n",
+           (unsigned long)result.timing.anomaly_us);
+    printf("  Total inference:     %lu us\n",
+           (unsigned long)(result.timing.classification_us + result.timing.anomaly_us));
+
+    // 5. 메모리 정보 (링커 스크립트 변수)
+    extern unsigned int _sdata, _edata, _sbss, _ebss;
+    extern unsigned int _estack;
+    printf("\n============== Memory Usage ==============\n");
+    printf("  .data (initialized):  %u bytes\n", &_edata - &_sdata);
+    printf("  .bss  (uninitialized): %u bytes\n", &_ebss - &_sbss);
+    printf("  Stack pointer:        0x%08X\n", &_estack);
+
+    printf("\n=== Test Complete ===\n");
+    return 0;
+}
+
+# ═══════════════════════════════════════════════
+# Cell 4: 크로스 컴파일 (PC x86 → ARM Cortex-M4F)
+# ═══════════════════════════════════════════════
+# Edge Impulse 라이브러리 + 우리 코드 + TFLite Micro = 하나의 ELF
+!arm-none-eabi-gcc \
+    -mcpu=cortex-m4 \
+    -mfloat-abi=hard \
+    -mfpu=fpv4-sp-d16 \
+    -mthumb \
+    -O2 \
+    -ffunction-sections \
+    -fdata-sections \
+    -Wl,--gc-sections \
+    -Wl,-T,edge_impulse_model/tflite-model/STM32F411RE_FLASH.ld \
+    -o mnist_test.elf \
+    mnist_test.c \
+    edge_impulse_model/tflite-model/*.cpp \
+    edge_impulse_model/tflite-model/edge-impulse-sdk/*.cpp \
+    -Iedge_impulse_model/tflite-model \
+    -Iedge_impulse_model/tflite-model/edge-impulse-sdk \
+    -Iedge_impulse_model/tflite-model/model-parameters \
+    -D__ARM_FEATURE_DSP=0 \
+    -D__ARM_FEATURE_SAT=0 \
+    -nostartfiles \
+    -lc -lm -lnosys 2>&1
+
+# ELF 파일 정보 확인
+!arm-none-eabi-size mnist_test.elf
+# 출력 예:
+#   text    data     bss     dec     hex filename
+#  45200     120    3200   48520    BD88 mnist_test.elf
+
+# 심볼 테이블에서 메모리 사용량 확인
+!arm-none-eabi-objdump -t mnist_test.elf | grep -E "(arena|tensor|interpreter|model)" | head -10
+
+# ═══════════════════════════════════════════════
+# Cell 5: Renode 시뮬레이션 실행 (Python API)
+# ═══════════════════════════════════════════════
+from pyrenode3 import emulation
+import time
+
+print("Starting Renode STM32F411 simulation...")
+
+# Renode 머신 생성
+machine = emulation.Machine("stm32f411")
+
+# STM32F411-Nucleo 보드 설정 로드
+# Renode 내장 .repl 파일 경로
+repl_path = "renode-1.15.3/platforms/boards/stm32f411-nucleo.repl"
+machine.load_platform(repl_path)
+
+# ELF 바이너리 로드
+machine.LoadExecutable("mnist_test.elf")
+
+# UART2 시리얼 출력 캡처 (ST-Link Virtual COM Port)
+uart = machine.GetPeripheral("usart2")
+uart.StartRecording("renode_uart_output.txt")
+
+# Renode Monitor 콘솔 로그
+monitor = machine.GetMonitor()
+
+# 시뮬레이션 시작 (10초 타임아웃, 실제 MCU 시간)
+print("Running simulation (10ms MCU time)...")
+try:
+    machine.Start(10)  # 10 milliseconds MCU time
+    time.sleep(2)      # 호스트 시간 대기 (에뮬레이션 완료)
+    machine.Pause()
+except Exception as e:
+    print(f"Simulation error: {e}")
+    machine.Pause()
+
+# UART 출력 읽기
+with open("renode_uart_output.txt") as f:
+    output = f.read()
+
+print("\n=== RENODE UART OUTPUT ===")
+print(output)
+print("=== END OF OUTPUT ===\n")
+
+# Renode Monitor로 메모리 정보 조회
+print("=== Renode Monitor: RAM Usage ===")
+monitor.Execute("sysbus.ram ReadDoubleWord 0x20000000 64")
+
+# 레지스터 덤프 (Cortex-M4)
+print("=== Renode Monitor: CPU State ===")
+monitor.Execute("cpu Registers")
+
+machine.Dispose()
+
+# ═══════════════════════════════════════════════
+# Cell 6: 결과 비교 (Edge Impulse 추정 vs Renode 실측)
+# ═══════════════════════════════════════════════
+print("""
++---------------------------+--------------+--------------+
+| Metric                   | Edge Impulse | Renode (실측) |
+|                          | (추정치)     | (실행 결과)   |
++---------------------------+--------------+--------------+
+| RAM (TFLite arena)       | ~8.8 KB      | (UART 출력)   |
+| ROM (text + data)        | ~462 KB      | (size 출력)   |
+| 추론 시간 (Cortex-M4F)    | 5 ms         | (UART 출력)   |
++---------------------------+--------------+--------------+
+""")
+print("비교 결과: Edge Impulse 추정치 vs Renode 실제 바이너리 실행 결과")
+print("차이가 크다면: 링커 스크립트, 최적화 옵션, TFLite Micro 버전 차이 의심")
+```
+
+### 실습 가능 항목 (Colab 호환)
+
+| 실습 | 설명 | 난이도 |
+|------|------|--------|
+| **MNIST 숫자 인식** | Edge Impulse C++ 라이브러리를 STM32F411 시뮬레이터에서 실행 | 하 |
+| **Magic Wand** | Renode 내장 LiteX+VexRiscv 가속도계 제스처 데모 | 중 |
+| **Person Detection** | 가상 카메라 입력 → TFLite Micro 사람 감지 | 중 |
+| **메모리 분석** | Renode Monitor로 RAM/Flash 사용량 실시간 관찰 | 중 |
+| **센서 데이터 주입** | 가상 I2C/GPIO로 MAX30102 PPG 데이터 시뮬레이션 | 상 |
+
+### 유용한 Renode 명령어 (Colab 터미널)
+
+```bash
+# CLI로 STM32F411 직접 실행
+./renode-1.15.3/renode boards/stm32f411-nucleo.repl -e "sysbus LoadExecutable @mnist_renode_test.elf; start;"
+```
+
+### 지원 보드 (Renode 내장)
+
+| 보드 | 아키텍처 | TinyML 용도 |
+|------|---------|------------|
+| STM32F411-Nucleo | Cortex-M4F | 2일차 교육 보드 |
+| STM32F746G-Discovery | Cortex-M7 | 고성능 MCU |
+| Arduino Nano 33 BLE | nRF52840 (Cortex-M4F) | Harvard TinyML 코스 |
+| LiteX VexRiscv | RISC-V | 오픈소스 CPU |
+| SiFive HiFive1 | RISC-V | Freedom E310 |
 
 ---
 
