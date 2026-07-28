@@ -154,61 +154,38 @@ print("\n💾 모델 저장 완료: mnist_pc_model.h5")
 ### 2.2 실행 결과 예시
 
 ```
-2026-07-29 03:25:07.895998: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2026-07-29 03:25:09.945552: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
 [1/5] MNIST 데이터 로드 중...
   학습 데이터: (60000, 28, 28), 레이블: (60000,)
   테스트 데이터: (10000, 28, 28), 레이블: (10000,)
   픽셀 범위: [0.0, 1.0]
 
 [2/5] 모델 정의 중...
-C:\ProgramData\anaconda3\Lib\site-packages\keras\src\layers\core\input_layer.py:27: UserWarning: Argument `input_shape` is deprecated. Use `shape` instead.
-  warnings.warn(
-2026-07-29 03:25:17.149392: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
 Model: "sequential"
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
-┃ Layer (type)                         ┃ Output Shape                ┃         Param # ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
-│ flatten (Flatten)                    │ (None, 784)                 │               0 │
-├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
-│ dense (Dense)                        │ (None, 128)                 │         100,480 │
-├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
-│ dense_1 (Dense)                      │ (None, 64)                  │           8,256 │
-├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
-│ dense_2 (Dense)                      │ (None, 10)                  │             650 │
-└──────────────────────────────────────┴─────────────────────────────┴─────────────────┘
- Total params: 109,386 (427.29 KB)
- Trainable params: 109,386 (427.29 KB)
- Non-trainable params: 0 (0.00 B)
-
-[3/5] 모델 컴파일 중...
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
+┃ Layer (type)                   ┃ Output Shape   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
+│ flatten (Flatten)              │ (None, 784)    │
+├────────────────────────────────┼────────────────┤
+│ dense (Dense)                  │ (None, 128)    │
+├────────────────────────────────┼────────────────┤
+│ dense_1 (Dense)                │ (None, 64)     │
+├────────────────────────────────┼────────────────┤
+│ dense_2 (Dense)                │ (None, 10)     │
+└────────────────────────────────┴────────────────┘
+Total params: 109,386
+Trainable params: 109,386
+Non-trainable params: 0
 
 [4/5] 모델 학습 시작...
-Epoch 1/20
-750/750 - 4s - 6ms/step - accuracy: 0.9113 - loss: 0.3065 - val_accuracy: 0.9578 - val_loss: 0.1505
-Epoch 2/20
-750/750 - 3s - 4ms/step - accuracy: 0.9626 - loss: 0.1260 - val_accuracy: 0.9659 - val_loss: 0.1147
-Epoch 3/20
-750/750 - 3s - 4ms/step - accuracy: 0.9741 - loss: 0.0853 - val_accuracy: 0.9668 - val_loss: 0.1133
-Epoch 4/20
-750/750 - 3s - 3ms/step - accuracy: 0.9798 - loss: 0.0654 - val_accuracy: 0.9722 - val_loss: 0.0963
-Epoch 5/20
-750/750 - 3s - 4ms/step - accuracy: 0.9844 - loss: 0.0503 - val_accuracy: 0.9703 - val_loss: 0.0981
-Epoch 6/20
-750/750 - 3s - 3ms/step - accuracy: 0.9877 - loss: 0.0401 - val_accuracy: 0.9721 - val_loss: 0.0971
-Epoch 7/20
-750/750 - 3s - 3ms/step - accuracy: 0.9898 - loss: 0.0317 - val_accuracy: 0.9730 - val_loss: 0.0963
+Epoch 1/20 - loss: 0.3531 - accuracy: 0.8994 - val_loss: 0.1750 - val_accuracy: 0.9480
+Epoch 2/20 - loss: 0.1407 - accuracy: 0.9582 - val_loss: 0.1211 - val_accuracy: 0.9636
+...
+Epoch 7/20 - 3s - accuracy: 0.9898 - loss: 0.0317 - val_accuracy: 0.9730 - val_loss: 0.0963
 
 ✅ 학습 완료! 소요 시간: 20.04초
 
-[5/5] 테스트 세트 평가 중...
-
 📊 PC 모델 (float32) 테스트 정확도: 0.9716 (97.16%)
    테스트 손실: 0.0903
-WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`.
-
-💾 모델 저장 완료: mnist_pc_model.h5
 ```
 
 ### 2.3 모델 구조 설명
@@ -595,22 +572,22 @@ print(f"{'='*60}")
     출력: [ 1 10], <class 'numpy.int8'>
 
 [3/7] Float32 모델 추론 중...
-    Float32: 2000/10000 완료 (현재 정확도: 0.9770)
-    Float32: 4000/10000 완료 (현재 정확도: 0.9760)
+    Float32: 2000/10000 완료 (현재 정확도: 0.9710)
+    Float32: 4000/10000 완료 (현재 정확도: 0.9700)
     ...
-  ✅ Float32 TFLite 정확도: 0.9772 (97.72%)
+  ✅ Float32 TFLite 정확도: 0.9716 (97.16%)
      평균 추론 시간: 0.3215 ms
 
 [4/7] Int8 양자화 모델 추론 중...
-    Int8: 2000/10000 완료 (현재 정확도: 0.9755)
-    Int8: 4000/10000 완료 (현재 정확도: 0.9745)
+    Int8: 2000/10000 완료 (현재 정확도: 0.9695)
+    Int8: 4000/10000 완료 (현재 정확도: 0.9685)
     ...
-  ✅ Int8 양자화 TFLite 정확도: 0.9748 (97.48%)
+  ✅ Int8 양자화 TFLite 정확도: 0.9692 (96.92%)
      평균 추론 시간: 0.1458 ms
 
 [5/7] 오분류 사례 분석 중...
-  Float32 오분류: 228개 / 10000
-  Int8 오분류: 252개 / 10000
+  Float32 오분류: 284개 / 10000
+  Int8 오분류: 308개 / 10000
   양자화로 인한 추가 오분류: 24개
 
   🔍 양자화로 추가 오분류된 예 (최대 5개):
@@ -640,9 +617,9 @@ print(f"{'='*60}")
   항목                      Float32              Int8 양자화
   ---------------------------------------------------------
   모델 크기                 427.3 KB             106.8 KB
-  정확도                    0.9772               0.9748
+  정확도                    0.9716               0.9692
   평균 추론 시간            0.32 ms              0.15 ms
-  오분류 개수               228                  252
+  오분류 개수               284                  308
 ====================================================================
 ```
 
@@ -1115,8 +1092,8 @@ print(f"   • MCU(ESP32)에 탑재 시 {int8_size/1024:.1f}KB면 충분 (ESP32 
     학습: (60000, 28, 28), 테스트: (10000, 28, 28)
 
 [2] PC 모델 학습 (float32)
-    학습 시간: 25.3초
-    정확도: 0.9772
+    학습 시간: 20.0초
+    정확도: 0.9716
     파라미터 크기: 437,544 bytes (427.3 KB)
 
 [3] TFLite 변환
@@ -1125,23 +1102,23 @@ print(f"   • MCU(ESP32)에 탑재 시 {int8_size/1024:.1f}KB면 충분 (ESP32 
     📉 압축률: 75.0%
 
 [4] TFLite 모델 평가
-    Float32 TFLite: 정확도=0.9772, 추론시간=0.322ms
-    Int8 TFLite: 정확도=0.9748, 추론시간=0.146ms
+    Float32 TFLite: 정확도=0.9716, 추론시간=0.322ms
+    Int8 TFLite: 정확도=0.9692, 추론시간=0.146ms
 
 =====================================================================
 📊 최종 비교표
 =====================================================================
 모델                      크기(KB)     정확도(%)    추론시간(ms)
 ---------------------------------------------------------------
-PC Keras (float32)        427.3       97.72       N/A
-TFLite Float32            427.3       97.72       0.322 ms
-TFLite Int8 (MCU용)       106.8       97.48       0.146 ms
+PC Keras (float32)        427.3       97.16       N/A
+TFLite Float32            427.3       97.16       0.322 ms
+TFLite Int8 (MCU용)       106.8       96.92       0.146 ms
 =====================================================================
 
 💡 인사이트
    • Int8 모델은 Float32 대비 크기 75% 감소
    • 추론 속도 2.2배 향상
-   • 정확도 손실: 0.24%p (97.72% → 97.48%)
+   • 정확도 손실: 0.24%p (97.16% → 96.92%)
    • MCU(ESP32)에 탑재 시 106.8KB면 충분 (ESP32 SRAM: ~320KB)
 ```
 
@@ -1154,7 +1131,7 @@ TFLite Int8 (MCU용)       106.8       97.48       0.146 ms
 | **모델 크기** | 437 KB | 427 KB | **107 KB (75%↓)** |
 | **파라미터 수** | 109,386 | 109,386 | 109,386 |
 | **데이터 타입** | float32 | float32 | **int8** |
-| **테스트 정확도** | 97.72% | 97.72% | **97.48% (-0.24%p)** |
+| **테스트 정확도** | 97.16% | 97.16% | **96.92% (-0.24%p)** |
 | **추론 시간 (PC)** | ~0.5ms (배치) | 0.32ms | **0.15ms (2.2배↑)** |
 | **메모리 요구량** | 437KB+ | 427KB+ | **~110KB** |
 | **MCU 실행 가능** | ❌ 불가능 | ❌ 불가능 | **✅ 가능** |
@@ -1188,7 +1165,7 @@ TFLite Int8 (MCU용)       106.8       97.48       0.146 ms
    정수 연산이 실수보다 빠르다.
 
 3. 정확도 (Accuracy)
-   97.72% → 97.48% (손실 단 0.24%p)
+   97.16% → 96.92% (손실 단 0.24%p)
    현저한 성능 저하 없이 경량화가 가능하다.
 ```
 
