@@ -218,6 +218,18 @@ if deploy_bytes:
     print("ESP32용 C++ 라이브러리 다운로드 완료")
 ```
 
+> **`deploy_target` 값별 생성 결과:**
+>
+> | `deploy_target` | 생성 구조 | 사용법 |
+> |----------------|-----------|--------|
+> | `'zip'` | `tflite-model/` 폴더 (소스 + 헤더) | 직접 MCU 프로젝트에 include, 이식 필요 |
+> | `'espressif-esp32'` | ESP32-IDF 프로젝트 (`main/`, `CMakeLists.txt`, `sdkconfig`) | `idf.py build; idf.py flash` |
+> | `'arduino-nano-33-ble'` | Arduino 라이브러리 폴더 | Arduino IDE에 include |
+> | `'cortex-m4f-80mhz'` | Makefile + CMSIS-RTOS 프로젝트 | STM32CubeIDE에 이식 |
+> | `'st-stm32n6'` | ST Edge AI Core 프로젝트 | STM32CubeIDE + Neural-ART 활용 |
+>
+> 교육에서는 `'zip'`(범용)으로 받아서 Renode 시뮬레이션에 쓰고, 실습 보드에 맞는 타겟으로 다시 받아서 플래시하는 순서로 진행합니다.
+
 ### 실행 결과
 
 #### list_profile_devices() 성공 (API 키 정상)
