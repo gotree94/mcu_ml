@@ -9,8 +9,8 @@
 
 **목표**: TinyML 개념 이해, PC에서 모델 변환 경험, ESP32에서 추론 실행
 
-| 시간 | 주제 | 내용 | 자료 |
-|------|------|------|------|
+| 시간 | 주제 | 내용 |
+|------|------|------|
 | 09:00-09:30 | **Orientation** | MCU ML 3일 개요, <br>보드(ESP32/STM32F411/STM32N6) 소개, <br>개발 환경 점검 |
 | 09:30-10:30 | **TinyML 역사와 개념** | TinyML 정의, <br>Cloud AI → Edge AI → TinyML 계층 구조, <br>역사 타임라인(2008~2026), 3대 축(알고리즘/SW/HW) |
 | 10:30-11:00 | **MCU ML 생태계** | 벤더별 현황(ST/NXP/Renesas/Espressif/Nordic), <br>오픈 런타임(TFLite Micro) vs 벤더 종속(X-CUBE-AI/eIQ), <br>Mbed EOL, Edge Impulse Qualcomm 인수 |
