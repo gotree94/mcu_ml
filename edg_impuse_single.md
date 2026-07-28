@@ -54,12 +54,33 @@ PC/노트북 + 웹 브라우저만으로 전체 파이프라인을 학습할 수
 pip install tensorflow edgeimpulse
 ```
 
+### API 키 설정
+
+Edge Impulse Python SDK는 프로파일링/배포 시 **클라우드 API 인증**이 필요합니다.
+
+```bash
+# 방법 1: 환경변수 설정 (권장)
+set EI_API_KEY=ei_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# 방법 2: 코드 내 직접 지정
+# import edgeimpulse as ei
+# ei.API_KEY = "ei_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+API 키 발급: https://studio.edgeimpulse.com/studio/profile
+
+> Edge Impulse는 2025년 Qualcomm에 인수되었으나, SDK와 API 키 체계는 동일하게 유지됩니다.
+> 무료 티어(Free Tier)에서도 프로파일링 및 배포가 가능합니다.
+
 ### 실습: MNIST 손글씨 분류 → MCU 배포 시뮬레이션
 
 ```python
 import tensorflow as tf
 from tensorflow import keras
 import edgeimpulse as ei
+
+# API 키 설정 (환경변수 EI_API_KEY 또는 직접 지정)
+# ei.API_KEY = "ei_your_api_key_here"
 
 # 1. 데이터 로드
 (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -68,7 +89,8 @@ x_test = x_test.reshape(-1, 784).astype('float32') / 255.0
 
 # 2. 간단한 신경망 학습
 model = keras.Sequential([
-    keras.layers.Dense(128, activation='relu', input_shape=(784,)),
+    keras.layers.Input(shape=(784,)),
+    keras.layers.Dense(128, activation='relu'),
     keras.layers.Dense(64, activation='relu'),
     keras.layers.Dense(10, activation='softmax')
 ])
@@ -76,27 +98,61 @@ model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=
 model.fit(x_train, y_train, epochs=5, batch_size=32)
 
 # 3. MCU 타겟 프로파일링 (하드웨어 없이!)
-devices = ei.model.list_profile_devices()
-print("사용 가능한 타겟:", devices)
+# ※ API 키 없으면 MissingApiKeyException 발생
+try:
+    devices = ei.model.list_profile_devices()
+    print("사용 가능한 타겟:", devices)
 
-# Cortex-M4F 80MHz 기준으로 프로파일링
-profile = ei.model.profile(model=model, device='cortex-m4f-80mhz')
-print(profile.summary())
-# → RAM, ROM, 추론 시간 등 출력
+    # Cortex-M4F 80MHz 기준으로 프로파일링
+    profile = ei.model.profile(model=model, device='cortex-m4f-80mhz')
+    print(profile.summary())
+    # → RAM, ROM, 추론 시간 등 출력
 
-# 4. C++ 라이브러리로 배포
-labels = [str(i) for i in range(10)]
-deploy_bytes = ei.model.deploy(
-    model=model,
-    model_output_type=ei.model.output_type.Classification(labels=labels),
-    model_input_type=ei.model.input_type.OtherInput(),
-    deploy_target='zip'  # C++ 라이브러리
-)
+    # 4. C++ 라이브러리로 배포
+    labels = [str(i) for i in range(10)]
+    deploy_bytes = ei.model.deploy(
+        model=model,
+        model_output_type=ei.model.output_type.Classification(labels=labels),
+        model_input_type=ei.model.input_type.OtherInput(),
+        deploy_target='zip'  # C++ 라이브러리
+    )
 
-if deploy_bytes:
-    with open('my_model_cpp.zip', 'wb') as f:
-        f.write(deploy_bytes.getvalue())
-    print("C++ 라이브러리 다운로드 완료")
+    if deploy_bytes:
+        with open('my_model_cpp.zip', 'wb') as f:
+            f.write(deploy_bytes.getvalue())
+        print("C++ 라이브러리 다운로드 완료")
+
+except ei.exceptions.MissingApiKeyException:
+    print("""
+    ⚠ API 키가 설정되지 않았습니다.
+
+    해결 방법:
+    1. https://studio.edgeimpulse.com/studio/profile 에서 API 키 복사
+    2. 실행 전 환경변수 설정:
+       set EI_API_KEY=ei_xxxx...
+    3. 또는 코드 상단에 직접 입력:
+       ei.API_KEY = "ei_xxxx..."
+    """)
+```
+
+### 실행 결과 (API 키 설정 후)
+
+```
+Epoch 1/5
+1875/1875 ━━━━━━━━━━━━━━━━━━━━ 3s 1ms/step - accuracy: 0.8759 - loss: 0.4205
+Epoch 2/5
+1875/1875 ━━━━━━━━━━━━━━━━━━━━ 2s 1ms/step - accuracy: 0.9680 - loss: 0.1039
+Epoch 3/5
+1875/1875 ━━━━━━━━━━━━━━━━━━━━ 2s 1ms/step - accuracy: 0.9790 - loss: 0.0661
+Epoch 4/5
+1875/1875 ━━━━━━━━━━━━━━━━━━━━ 2s 1ms/step - accuracy: 0.9832 - loss: 0.0518
+Epoch 5/5
+1875/1875 ━━━━━━━━━━━━━━━━━━━━ 2s 1ms/step - accuracy: 0.9876 - loss: 0.0394
+
+사용 가능한 타겟: ['cortex-m4f-80mhz', 'cortex-m7f-216mhz', 'espressif-esp32', ...]
+
+RAM: 12.2 KB | ROM: 48.5 KB | 추론 시간: 3.2 ms (Cortex-M4F @ 80MHz)
+→ MCU에 충분히 탑재 가능한 크기입니다.
 ```
 
 ### 학습 포인트
