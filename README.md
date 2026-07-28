@@ -58,13 +58,13 @@
 
 | 시간 | 주제 | 내용 |
 |------|------|------|
-| 09:00-09:45 | **STM32N6 아키텍처** | Cortex-M85 (800MHz, Helium) + Neural-ART NPU, 4.2MB SRAM, 8MB Flash, STM32 최초 AI 내장 MCU |
-| 09:45-10:30 | **NPU vs CPU 추론 비교** | CPU(Cortex-M85, Helium MVE) vs NPU(Neural-ART) 연산 방식, MAC/cycle, 전력 효율(TOPS/W), 메모리 대역폭 |
-| 10:30-12:00 | **STM32 Edge AI Suite 실습** | ST Edge AI Suite 설치, 모델 가져오기(TFLite/Keras/ONNX), NPU 할당(CPU/NPU/혼합), 변환 → 배포 → 벤치마크 |
+| 09:00-09:45 | **STM32N6 아키텍처** | Cortex-M85 (800MHz, Helium) + Neural-ART NPU, <br>4.2MB SRAM, 8MB Flash, STM32 최초 AI 내장 MCU |
+| 09:45-10:30 | **NPU vs CPU 추론 비교** | CPU(Cortex-M85, Helium MVE) vs NPU(Neural-ART) 연산 방식, <br>MAC/cycle, 전력 효율(TOPS/W), 메모리 대역폭 |
+| 10:30-12:00 | **STM32 Edge AI Suite 실습** | ST Edge AI Suite 설치, 모델 가져오기(TFLite/Keras/ONNX), <br>NPU 할당(CPU/NPU/혼합), 변환 → 배포 → 벤치마크 |
 | 12:00-13:00 | 점심 | |
-| 13:00-14:00 | **실시간 객체 탐지 실습** | MobileNet v1 / FOMO 모델 → NPU 양자화 → STM32N6 배포, 카메라 입력 → NPU 추론 → UART 출력 |
-| 14:00-15:00 | **NPU 성능 튜닝** | 메모리 배치 최적화, NPU-CPU 파이프라인 분할, 전력-성능 트레이드오프, 프로파일링 |
-| 15:00-16:00 | **종합 프로젝트 + Q&A** | 3일간 학습 내용 복습, ESP32/S TM32F411/STM32N6 계열별 배포 전략 수립, 추가 학습 로드맵 |
+| 13:00-14:00 | **실시간 객체 탐지 실습** | MobileNet v1 / FOMO 모델 → NPU 양자화 → STM32N6 배포, <br>카메라 입력 → NPU 추론 → UART 출력 |
+| 14:00-15:00 | **NPU 성능 튜닝** | 메모리 배치 최적화, NPU-CPU 파이프라인 분할, <br>전력-성능 트레이드오프, 프로파일링 |
+| 15:00-16:00 | **종합 프로젝트 + Q&A** | 3일간 학습 내용 복습, <br>ESP32/S TM32F411/STM32N6 계열별 배포 전략 수립, 추가 학습 로드맵 |
 
 **3일차 핵심 포인트**:
 - Neural-ART NPU: CNN/RNN 전용 하드웨어 가속기, CPU 대비 10~100배 전력 효율
