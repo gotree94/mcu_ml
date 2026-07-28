@@ -76,20 +76,28 @@ API 키 발급: https://studio.edgeimpulse.com/studio/profile
 
 ### 실습: MNIST 손글씨 분류 → MCU 배포 시뮬레이션
 
+#### Part A: Float32 + Int8 양자화 + 다중 타겟 프로파일링
+
 ```python
 import tensorflow as tf
 from tensorflow import keras
 import edgeimpulse as ei
+import numpy as np
+import os
 
-# API 키 설정 (환경변수 EI_API_KEY 또는 직접 지정)
-# ei.API_KEY = "ei_your_api_key_here"
+# API 키 설정
+ei.API_KEY = "ei_your_admin_api_key_here"
 
-# 1. 데이터 로드
+# ─────────────────────────────────────────────
+# 1. MNIST 데이터 로드 및 전처리
+# ─────────────────────────────────────────────
 (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
 x_train = x_train.reshape(-1, 784).astype('float32') / 255.0
 x_test = x_test.reshape(-1, 784).astype('float32') / 255.0
 
-# 2. 간단한 신경망 학습
+# ─────────────────────────────────────────────
+# 2. Keras 모델 학습
+# ─────────────────────────────────────────────
 model = keras.Sequential([
     keras.layers.Input(shape=(784,)),
     keras.layers.Dense(128, activation='relu'),
@@ -99,52 +107,115 @@ model = keras.Sequential([
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 model.fit(x_train, y_train, epochs=5, batch_size=32)
 
-# 3. MCU 타겟 프로파일링 (하드웨어 없이!)
-# ※ API 키 없으면 MissingApiKeyException 발생
+# ─────────────────────────────────────────────
+# 3. Int8 양자화 변환 (MCU 탑재용)
+# ─────────────────────────────────────────────
+def representative_dataset():
+    for i in range(100):
+        yield [x_train[i].reshape(1, 784).astype('float32')]
+
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+converter.representative_dataset = representative_dataset
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+converter.inference_input_type = tf.int8
+converter.inference_output_type = tf.int8
+tflite_int8 = converter.convert()
+
+int8_path = 'model_int8.tflite'
+with open(int8_path, 'wb') as f:
+    f.write(tflite_int8)
+print(f"Int8 모델 크기: {len(tflite_int8) / 1024:.1f} KB")
+
+# ─────────────────────────────────────────────
+# 4. 프로파일링 (Float32 + Int8 / 다중 타겟)
+# ─────────────────────────────────────────────
 try:
     devices = ei.model.list_profile_devices()
-    print("사용 가능한 타겟:", devices)
+    print("\n사용 가능한 타겟 수:", len(devices))
 
-    # Cortex-M4F 80MHz 기준으로 프로파일링
-    profile = ei.model.profile(model=model, device='cortex-m4f-80mhz')
-    print(profile.summary())
-    # → RAM, ROM, 추론 시간 등 출력
+    # 프로파일링할 타겟 목록 (교육 보드 중심)
+    target_list = [
+        'cortex-m4f-80mhz',   # STM32F411 (Cortex-M4F)
+        'cortex-m7-216mhz',   # STM32F7/H7 (Cortex-M7)
+        'espressif-esp32',    # ESP32
+        'st-stm32n6',         # STM32N6 (NPU)
+    ]
 
-    # 4. C++ 라이브러리로 배포
-    labels = [str(i) for i in range(10)]
-    deploy_bytes = ei.model.deploy(
-        model=model,
-        model_output_type=ei.model.output_type.Classification(labels=labels),
-        model_input_type=ei.model.input_type.OtherInput(),
-        deploy_target='zip'  # C++ 라이브러리
-    )
+    for target in target_list:
+        if target not in devices:
+            print(f"\n  ⚠ '{target}' 미지원, 건너뜀")
+            continue
 
-    if deploy_bytes:
-        with open('my_model_cpp.zip', 'wb') as f:
-            f.write(deploy_bytes.getvalue())
-        print("C++ 라이브러리 다운로드 완료")
+        print(f"\n{'='*50}")
+        print(f"  타겟: {target}")
+        print(f"{'='*50}")
+
+        # Float32 프로파일링
+        print(f"  [Float32] 프로파일링 중...")
+        p_f32 = ei.model.profile(model=model, device=target)
+        print(f"  Float32 → RAM: {p_f32.summary()['memory']['tflite']['ram']/1024:.1f} KB"
+              f" | ROM: {p_f32.summary()['memory']['tflite']['rom']/1024:.1f} KB"
+              f" | 추론: {p_f32.summary()['timePerInferenceMs']} ms")
+
+        # Int8 프로파일링 (양자화된 TFLite 파일로)
+        print(f"  [Int8] 프로파일링 중...")
+        try:
+            p_int8 = ei.model.profile(model=int8_path, device=target)
+            print(f"  Int8    → RAM: {p_int8.summary()['memory']['tflite']['ram']/1024:.1f} KB"
+                  f" | ROM: {p_int8.summary()['memory']['tflite']['rom']/1024:.1f} KB"
+                  f" | 추론: {p_int8.summary()['timePerInferenceMs']} ms")
+        except Exception as e:
+            print(f"  Int8 프로파일링 실패: {e}")
 
 except ei.exceptions.MissingApiKeyException:
-    print("""
-    ⚠ API 키가 설정되지 않았습니다.
-
-    해결 방법:
-    1. https://studio.edgeimpulse.com/studio/profile 에서 API 키 복사
-    2. 실행 전 환경변수 설정:
-       set EI_API_KEY=ei_xxxx...
-    3. 또는 코드 상단에 직접 입력:
-       ei.API_KEY = "ei_xxxx..."
-    """)
+    print("API 키가 설정되지 않았습니다.")
 except Exception as e:
-    print(f"""
-    ⚠ Edge Impulse API 오류: {e}
+    print(f"API 오류: {e}")
+```
 
-    일반적인 원인:
-    1. API 키 권한 부족: profile()/deploy()는 admin 역할 필요
-       → https://studio.edgeimpulse.com/studio/profile 에서 키 생성 시 Role=Admin 선택
-    2. 네트워크 연결 문제
-    3. Edge Impulse 서버 상태 (https://status.edgeimpulse.com)
-    """)
+#### Part B: 결과 해석 예시
+
+```
+  ==================================================
+  타겟: cortex-m4f-80mhz   ← STM32F411 (Flash 512KB, SRAM 128KB)
+  ==================================================
+  [Float32] RAM: 8.8 KB | ROM: 462.5 KB | 추론: 5 ms
+  [Int8]    RAM: 4.2 KB | ROM: 114.9 KB | 추론: 2 ms   ← ✅ 탑재 가능
+
+  ==================================================
+  타겟: espressif-esp32    ← ESP32 (SRAM 320KB, PSRAM 별도)
+  ==================================================
+  [Float32] RAM: 8.8 KB | ROM: 462.5 KB | 추론: 7 ms   ← ❌ ROM > SRAM
+  [Int8]    RAM: 4.2 KB | ROM: 114.9 KB | 추론: 3 ms   ← ✅ 탑재 가능!
+
+  ==================================================
+  타겟: st-stm32n6         ← STM32N6 (Neural-ART NPU)
+  ==================================================
+  [Float32] 지원 안 함 (NPU는 양자화만 가속)
+  [Int8]    RAM: 3.1 KB | ROM: 114.9 KB | 추론: 0.3 ms ← 🚀 NPU 가속
+```
+
+※ `profile()` 호출은 각각 클라우드 API 요청이므로 실행에 10~30초씩 소요됩니다.
+
+#### Part C: C++ 라이브러리 배포 (선택한 타겟)
+
+```python
+# 가장 적합한 타겟 선택 후 배포
+labels = [str(i) for i in range(10)]
+
+# Int8 모델 → ESP32용 C++ 라이브러리
+deploy_bytes = ei.model.deploy(
+    model=int8_path,  # ← 양자화된 TFLite 파일
+    model_output_type=ei.model.output_type.Classification(labels=labels),
+    model_input_type=ei.model.input_type.OtherInput(),
+    deploy_target='espressif-esp32'  # 또는 'zip' (범용)
+)
+
+if deploy_bytes:
+    with open('esp32_mnist_int8.zip', 'wb') as f:
+        f.write(deploy_bytes.getvalue())
+    print("ESP32용 C++ 라이브러리 다운로드 완료")
 ```
 
 ### 실행 결과
@@ -221,8 +292,8 @@ Performance on device types:
 | MPU (Cortex-A72 @ 1.5GHz) | 1 ms | — | 441.4 KB | |
 ```
 
-> **ESP32 탑재 불가:** Float32 ROM 462.5KB가 ESP32 가용 SRAM(320KB) 초과. <br>
-> **STM32F411 탑재:** ROM 462.5KB < Flash 512KB ✅, RAM 8.8KB < SRAM 128KB ✅<br>
+> **ESP32 탑재 불가:** Float32 ROM 462.5KB가 ESP32 가용 SRAM(320KB) 초과.
+> **STM32F411 탑재:** ROM 462.5KB < Flash 512KB ✅, RAM 8.8KB < SRAM 128KB ✅
 > **Int8 양자화 필요:** ESP32 탑재를 위해 Int8 변환 후 프로파일링 재시도 필요
 
 ### 학습 포인트
