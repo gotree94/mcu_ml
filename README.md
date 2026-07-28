@@ -11,15 +11,15 @@
 
 | 시간 | 주제 | 내용 | 자료 |
 |------|------|------|------|
-| 09:00-09:30 | **Orientation** | MCU ML 3일 개요, 보드(ESP32/STM32F411/STM32N6) 소개, 개발 환경 점검 | `MCU_OS_ML_Survey_2026.md` |
-| 09:30-10:30 | **TinyML 역사와 개념** | TinyML 정의, Cloud AI → Edge AI → TinyML 계층 구조, 역사 타임라인(2008~2026), 3대 축(알고리즘/SW/HW) | `TinyML_history_ML.md` |
-| 10:30-11:00 | **MCU ML 생태계** | 벤더별 현황(ST/NXP/Renesas/Espressif/Nordic), 오픈 런타임(TFLite Micro) vs 벤더 종속(X-CUBE-AI/eIQ), Mbed EOL, Edge Impulse Qualcomm 인수 | `MCU_ML_산업현실_분석.md`, `MCU_OS_ML_Survey_2026.md` |
-| 11:00-11:30 | **참고도서 가이드** | TinyML 추천 도서, 난이도별/주제별 학습 로드맵 | `embedded_ml_book_analysis.md` |
-| 11:30-12:30 | **실습: MNIST → TFLite 변환** | Keras 학습 → Float32 TFLite → Int8 양자화, 정확도/속도/크기 비교, 양자화 영향 분석 | `PC_MNIST_to_TFLite_실습.md` |
+| 09:00-09:30 | **Orientation** | MCU ML 3일 개요, <br>보드(ESP32/STM32F411/STM32N6) 소개, <br>개발 환경 점검 | `MCU_OS_ML_Survey_2026.md` |
+| 09:30-10:30 | **TinyML 역사와 개념** | TinyML 정의, <br>Cloud AI → Edge AI → TinyML 계층 구조, <br>역사 타임라인(2008~2026), 3대 축(알고리즘/SW/HW) | `TinyML_history_ML.md` |
+| 10:30-11:00 | **MCU ML 생태계** | 벤더별 현황(ST/NXP/Renesas/Espressif/Nordic), <br>오픈 런타임(TFLite Micro) vs 벤더 종속(X-CUBE-AI/eIQ), <br>Mbed EOL, Edge Impulse Qualcomm 인수 | `MCU_ML_산업현실_분석.md`, `MCU_OS_ML_Survey_2026.md` |
+| 11:00-11:30 | **참고도서 가이드** | TinyML 추천 도서, <br>난이도별/주제별 학습 로드맵 | `embedded_ml_book_analysis.md` |
+| 11:30-12:30 | **실습: MNIST → TFLite 변환** | Keras 학습 → Float32 TFLite → Int8 양자화, <br>정확도/속도/크기 비교, 양자화 영향 분석 | `PC_MNIST_to_TFLite_실습.md` |
 | 12:30-13:30 | 점심 | | |
-| 13:30-14:30 | **ESP32 아키텍처 이해** | Xtensa LX6 듀얼코어(Core0 WiFi Core1 App), SRAM 320KB 제약, Flash 4MB, 주변장치 공유 구조, FreeRTOS xTaskCreatePinnedToCore | `ESP32-CAM_Complete_Guide.md` |
-| 14:30-16:00 | **ESP32-CAM + Edge Impulse** | ESP32-CAM 셋업, 웹서버 구동, EloquentEsp32Cam 데이터 수집, Edge Impulse 프로젝트 → 학습 → TFLite 모델 다운로드 | `ESP32-CAM_Complete_Guide.md` |
-| 16:00-17:00 | **ESP32 TFLite Micro 포팅** | PC 모델(Int8 114.9KB) → ESP32 SRAM(~320KB) 적합성 판단, Tensor Arena 설계, 시리얼 프로토콜로 이미지 전송 → 추론 → 결과 수신 | `PC_MNIST_to_TFLite_실습.md`(부록 B) |
+| 13:30-14:30 | **ESP32 아키텍처 이해** | Xtensa LX6 듀얼코어(Core0 WiFi Core1 App), <br>SRAM 320KB 제약, Flash 4MB, <br>주변장치 공유 구조, FreeRTOS xTaskCreatePinnedToCore | `ESP32-CAM_Complete_Guide.md` |
+| 14:30-16:00 | **ESP32-CAM + Edge Impulse** | ESP32-CAM 셋업, 웹서버 구동, <br>EloquentEsp32Cam 데이터 수집, <br>Edge Impulse 프로젝트 → 학습 → TFLite 모델 다운로드 | `ESP32-CAM_Complete_Guide.md` |
+| 16:00-17:00 | **ESP32 TFLite Micro 포팅** | PC 모델(Int8 114.9KB) → ESP32 SRAM(~320KB) 적합성 판단, Tensor Arena 설계, <br>시리얼 프로토콜로 이미지 전송 → 추론 → 결과 수신 | `PC_MNIST_to_TFLite_실습.md`(부록 B) |
 
 **1일차 핵심 포인트**:
 - TinyML = MCU급 디바이스에서의 ML 추론 (클라우드 없이)
