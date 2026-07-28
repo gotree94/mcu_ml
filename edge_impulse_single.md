@@ -13,6 +13,16 @@ PC/노트북 + 웹 브라우저만으로 전체 파이프라인을 학습할 수
 
 브라우저에서 데이터 수집 → 학습 → 배포 전체를 수행할 수 있습니다.
 
+```
+로컬 (PC)                    원격 (Edge Impulse 클라우드)
+─────────────────            ─────────────────────────
+① MNIST 학습 (TensorFlow)
+② Int8 TFLite 변환
+                      ──►   ③ 모델 업로드
+                             ④ MCU 시뮬레이션 (RAM/ROM/ms)
+                      ◄──   ⑤ 결과 반환 (JSON)
+⑥ 결과 출력
+```
 
 ### 실습 가능 항목
 
@@ -48,18 +58,6 @@ PC/노트북 + 웹 브라우저만으로 전체 파이프라인을 학습할 수
 ## 2. Edge Impulse Python SDK (PC에서 학습 + 배포)
 
 **장점**: Python으로 모델을 학습하고, MCU 타겟용으로 프로파일링/배포까지 가능
-
-
-```
-로컬 (PC)                    원격 (Edge Impulse 클라우드)
-─────────────────            ─────────────────────────
-① MNIST 학습 (TensorFlow)
-② Int8 TFLite 변환
-                      ──►   ③ 모델 업로드
-                             ④ MCU 시뮬레이션 (RAM/ROM/ms)
-                      ◄──   ⑤ 결과 반환 (JSON)
-⑥ 결과 출력
-```
 
 ### 환경 설정
 
@@ -99,7 +97,6 @@ import numpy as np
 import os
 import json
 import io
-import re
 from contextlib import redirect_stdout
 
 # API 키 설정
@@ -168,18 +165,20 @@ try:
         print(f"  타겟: {target}")
         print(f"{'='*50}")
 
-        def parse_profile(profile_obj):
-            """summary()의 stdout 출력에서 JSON 추출"""
+        def parse_first_json(profile_obj):
+            """summary()가 출력하는 내용 중 첫 번째 JSON만 dict로 반환"""
             with io.StringIO() as buf, redirect_stdout(buf):
                 profile_obj.summary()
                 out = buf.getvalue()
-            match = re.search(r'\{.*\}', out, re.DOTALL)
-            return json.loads(match.group()) if match else {}
+            start = out.index('{')
+            decoder = json.JSONDecoder()
+            obj, _ = decoder.raw_decode(out, start)
+            return obj
 
         # Float32 프로파일링
         print(f"  [Float32] 프로파일링 중...")
         p_f32 = ei.model.profile(model=model, device=target)
-        j_f32 = parse_profile(p_f32)
+        j_f32 = parse_first_json(p_f32)
         m_f32 = j_f32['memory']['tflite']
         print(f"  Float32 → RAM: {m_f32['ram']/1024:.1f} KB"
               f" | ROM: {m_f32['rom']/1024:.1f} KB"
@@ -190,7 +189,7 @@ try:
         print(f"  [Int8] 프로파일링 중...")
         try:
             p_int8 = ei.model.profile(model=int8_path, device=target)
-            j_int8 = parse_profile(p_int8)
+            j_int8 = parse_first_json(p_int8)
             m_int8 = j_int8['memory']['tflite']
             print(f"  Int8    → RAM: {m_int8['ram']/1024:.1f} KB"
                   f" | ROM: {m_int8['rom']/1024:.1f} KB"
