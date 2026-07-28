@@ -83,8 +83,8 @@
 | **SRAM** | 320KB | 128KB | 4.2MB |
 | **추론 엔진** | TFLite Micro / ESP-DL | X-Cube-AI / CMSIS-NN | ST Edge AI Suite / NPU SDK |
 | **데이터 타입** | int8 필수 | int8 권장 (float32 가능) | int8/int4 혼합 |
-| **추론 시간 (MNIST)** | ~300~500ms 예상 | ~50~100ms 예상 | ~1~5ms 예상 |
-| **전력 소모** | ~80mA | ~50mA | ~200mA (NPU ON) |
+| **추론 시간 (MNIST)** | ~ 300 ~ 500ms 예상 | ~ 50 ~ 100ms 예상 | ~ 1 ~ 5ms 예상 |
+| **전력 소모** | ~ 80mA | ~ 50mA | ~ 200mA (NPU ON) |
 | **대표 응용** | Wi-Fi CAM, 음성인식 | 의료기, 센서 융합 | 비전 AI, 실시간 객체탐지 |
 
 ---
