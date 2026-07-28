@@ -221,8 +221,8 @@ Performance on device types:
 | MPU (Cortex-A72 @ 1.5GHz) | 1 ms | — | 441.4 KB | |
 ```
 
-> **ESP32 탑재 불가:** Float32 ROM 462.5KB가 ESP32 가용 SRAM(320KB) 초과.
-> **STM32F411 탑재:** ROM 462.5KB < Flash 512KB ✅, RAM 8.8KB < SRAM 128KB ✅
+> **ESP32 탑재 불가:** Float32 ROM 462.5KB가 ESP32 가용 SRAM(320KB) 초과. <br>
+> **STM32F411 탑재:** ROM 462.5KB < Flash 512KB ✅, RAM 8.8KB < SRAM 128KB ✅<br>
 > **Int8 양자화 필요:** ESP32 탑재를 위해 Int8 변환 후 프로파일링 재시도 필요
 
 ### 학습 포인트
