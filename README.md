@@ -35,14 +35,14 @@
 
 | 시간 | 주제 | 내용 |
 |------|------|------|
-| 09:00-09:30 | **STM32F411 개요** | Cortex-M4 FPU (84MHz), SRAM 128KB, Flash 512KB, NUCLEO-F411RE 보드, STM32CubeIDE 환경 |
-| 09:30-10:30 | **STM32CubeMX + HAL 기초** | GPIO/UART/TIM 설정, 프로젝트 생성, printf 리디렉션, LED Blink |
-| 10:30-11:30 | **X-Cube-AI 이해** | X-Cube-AI 워크플로우: PC 모델 → .tflite → C 코드 변환, RAM/ROM 최적화, 벤치마킹, 정확도 검증 (LLM과의 차이점) |
+| 09:00-09:30 | **STM32F411 개요** | Cortex-M4 FPU (84MHz), SRAM 128KB, Flash 512KB, <br>NUCLEO-F411RE 보드, STM32CubeIDE 환경 |
+| 09:30-10:30 | **STM32CubeMX + HAL 기초** | GPIO/UART/TIM 설정, 프로젝트 생성, <br>printf 리디렉션, LED Blink |
+| 10:30-11:30 | **X-Cube-AI 이해** | X-Cube-AI 워크플로우: PC 모델 → .tflite → C 코드 변환, <br>RAM/ROM 최적화, 벤치마킹, 정확도 검증 (LLM과의 차이점) |
 | 11:30-12:30 | **실습: 심박 데이터 분류 모델** | Python PPG 데이터 생성 → Keras DNN 학습 → X-Cube-AI 변환 → STM32F411 포팅 |
 | 12:30-13:30 | 점심 | |
-| 13:30-15:00 | **CMSIS-NN 최적화** | Cortex-M4용 DSP 명령어(SIMD), CMSIS-NN 커널(s8/s16), 가중치/활성화 8비트 양자화, STM32Cube.AI vs 직접 TFLite Micro 비교 |
-| 15:00-16:30 | **FreeRTOS + AI 태스크 통합** | 센서 수집 Task → Queue 전달 → AI 추론 Task → 결과 출력 Task, xTaskCreatePinnedToCore, Stack 크기 설계 |
-| 16:30-17:00 | **프로젝트 코드 리뷰 + 최적화 팁** | 학습된 모델의 Flash/램 사용량 분석, CubeIDE 프로파일러로 추론 시간 측정, 추가 최적화 방안 논의 |
+| 13:30-15:00 | **CMSIS-NN 최적화** | Cortex-M4용 DSP 명령어(SIMD), <br>CMSIS-NN 커널(s8/s16), 가중치/활성화 8비트 양자화, STM32Cube.AI vs 직접 TFLite Micro 비교 |
+| 15:00-16:30 | **FreeRTOS + AI 태스크 통합** | 센서 수집 Task → Queue 전달 → AI 추론 Task → 결과 출력 Task, <br>xTaskCreatePinnedToCore, Stack 크기 설계 |
+| 16:30-17:00 | **프로젝트 코드 리뷰 + 최적화 팁** | 학습된 모델의 Flash/램 사용량 분석, <br>CubeIDE 프로파일러로 추론 시간 측정, 추가 최적화 방안 논의 |
 
 **2일차 핵심 포인트**:
 - Cortex-M4 FPU는 float32 연산 가능하지만 SRAM 128KB가 한계
