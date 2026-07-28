@@ -84,6 +84,7 @@ from tensorflow import keras
 import edgeimpulse as ei
 import numpy as np
 import os
+import json
 
 # API 키 설정
 ei.API_KEY = "ei_your_admin_api_key_here"
@@ -134,12 +135,12 @@ try:
     devices = ei.model.list_profile_devices()
     print("\n사용 가능한 타겟 수:", len(devices))
 
-    # 프로파일링할 타겟 목록 (교육 보드 중심)
+    # 프로파일링할 타겟 목록 (ESP32 기본, 나머지는 주석 해제)
     target_list = [
-        'cortex-m4f-80mhz',   # STM32F411 (Cortex-M4F)
-        'cortex-m7-216mhz',   # STM32F7/H7 (Cortex-M7)
-        'espressif-esp32',    # ESP32
-        'st-stm32n6',         # STM32N6 (NPU)
+        'espressif-esp32',    # [기본] ESP32 (1일차)
+        # 'cortex-m4f-80mhz', # 필요시 주석 해제: STM32F411 (2일차)
+        # 'cortex-m7-216mhz', # 필요시 주석 해제: STM32F7/H7 (고성능)
+        # 'st-stm32n6',       # 필요시 주석 해제: STM32N6 NPU (3일차)
     ]
 
     for target in target_list:
@@ -154,19 +155,23 @@ try:
         # Float32 프로파일링
         print(f"  [Float32] 프로파일링 중...")
         p_f32 = ei.model.profile(model=model, device=target)
-        m = p_f32['memory']['tflite']
-        print(f"  Float32 → RAM: {m['ram']/1024:.1f} KB"
-              f" | ROM: {m['rom']/1024:.1f} KB"
-              f" | 추론: {p_f32['timePerInferenceMs']} ms")
+        j_f32 = json.loads(p_f32.summary)  # summary 속성 → JSON 문자열 → dict
+        m_f32 = j_f32['memory']['tflite']
+        print(f"  Float32 → RAM: {m_f32['ram']/1024:.1f} KB"
+              f" | ROM: {m_f32['rom']/1024:.1f} KB"
+              f" | 추론: {j_f32['timePerInferenceMs']} ms"
+              f" | 지원: {j_f32['isSupportedOnMcu']}")
 
         # Int8 프로파일링 (양자화된 TFLite 파일로)
         print(f"  [Int8] 프로파일링 중...")
         try:
             p_int8 = ei.model.profile(model=int8_path, device=target)
-            m8 = p_int8['memory']['tflite']
-            print(f"  Int8    → RAM: {m8['ram']/1024:.1f} KB"
-                  f" | ROM: {m8['rom']/1024:.1f} KB"
-                  f" | 추론: {p_int8['timePerInferenceMs']} ms")
+            j_int8 = json.loads(p_int8.summary)
+            m_int8 = j_int8['memory']['tflite']
+            print(f"  Int8    → RAM: {m_int8['ram']/1024:.1f} KB"
+                  f" | ROM: {m_int8['rom']/1024:.1f} KB"
+                  f" | 추론: {j_int8['timePerInferenceMs']} ms"
+                  f" | 지원: {j_int8['isSupportedOnMcu']}")
         except Exception as e:
             print(f"  Int8 프로파일링 실패: {e}")
 
