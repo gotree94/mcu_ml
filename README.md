@@ -1,7 +1,22 @@
 # Embedded ML 3일 교육 커리큘럼
 
-**총 시간**: 20시간 (1일차 7h + 2일차 7h + 3일차 6h) <br>
+**총 시간**: 20시간 (1일차 7h + 2일차 7h + 3일차 6h)
 **목표**: TinyML 기초부터 NPU 가속 추론까지, MCU 3종(ESP32 / STM32F411 / STM32N6) 실습
+
+---
+
+## 교육 자료 목록
+
+| 파일 | 설명 |
+|------|------|
+| `TinyML_history_ML.md` | TinyML 역사, 발전 방향, MCU ML 생태계 총정리 |
+| `embedded_ml_book_analysis.md` | 임베디드 ML/AI 도서 종합 분석 (124권) |
+| `MCU_ML_산업현실_분석.md` | 서적 vs 실제 산업 현실 비교 (벤더 종속, 시장 규모) |
+| `MCU_OS_ML_Survey_2026.md` | MCU 벤더별 OS/ML 지원 현황, Mbed EOL, 생태계 |
+| `PC_MNIST_to_TFLite_실습.md` | MNIST → TFLite Float32/Int8 PC 실습 (정확도/속도 비교) |
+| `ESP32-CAM_Complete_Guide.md` | ESP32-CAM 셋업 → 웹서버 → YOLO → Edge Impulse 전 과정 |
+| `xtensaLX6.png` | Xtensa LX6 아키텍처 다이어그램 |
+| `xtensaLX7.png` | Xtensa LX7 아키텍처 다이어그램 |
 
 ---
 
@@ -42,7 +57,7 @@
 | 12:30-13:30 | 점심 | |
 | 13:30-15:00 | **CMSIS-NN 최적화** | Cortex-M4용 DSP 명령어(SIMD), CMSIS-NN 커널(s8/s16), 가중치/활성화 8비트 양자화, STM32Cube.AI vs 직접 TFLite Micro 비교 |
 | 15:00-16:30 | **FreeRTOS + AI 태스크 통합** | 센서 수집 Task → Queue 전달 → AI 추론 Task → 결과 출력 Task, xTaskCreatePinnedToCore, Stack 크기 설계 |
-| 16:30-17:00 | **웹캠 + STM32 연동** | PC OpenCV → UART → STM32F411, PC는 이미지 처리, MCU는 추론 결과로 액추에이터 제어 |
+| 16:30-17:00 | **프로젝트 코드 리뷰 + 최적화 팁** | 학습된 모델의 Flash/램 사용량 분석, CubeIDE 프로파일러로 추론 시간 측정, 추가 최적화 방안 논의 |
 
 **2일차 핵심 포인트**:
 - Cortex-M4 FPU는 float32 연산 가능하지만 SRAM 128KB가 한계
@@ -99,16 +114,22 @@
 - [ ] `pip install tensorflow numpy matplotlib pillow pyserial`
 
 ### Day 2 (STM32F411)
-- [ ] STM32CubeIDE 1.14.0+
-- [ ] STM32CubeMX 6.8.0+ (X-Cube-AI 플러그인)
+- [ ] STM32CubeIDE 2.2.0+ (2026-06 출시, Eclipse 2025-12 기반, GCC 14)
+- [ ] STM32CubeMX 6.18.0+ (2026-06 출시, STM32N6 메모리 관리 향상)
+- [ ] X-Cube-AI (CubeMX 내 Software Packs에서 설치) / ST Edge AI Core 4.0.0
 - [ ] NUCLEO-F411RE 보드
 - [ ] 심박 센서 (PPG, 선택)
 - [ ] `pip install tensorflow scikit-learn`
 
+> **참고:** STM32CubeIDE v2.0.0부터 CubeMX가 분리되었습니다. 두 툴을 각각 설치해야 합니다.
+> X-Cube-AI 레거시 대신 **STM32Cube AI Studio**(신규 standalone GUI) 또는 **ST Edge AI Core 4.0.0**(CLI) 사용을 권장합니다.
+
 ### Day 3 (STM32N6)
-- [ ] STM32 Edge AI Suite
-- [ ] STM32N6570-DK 보드
-- [ ] 카메라 모듈
+- [ ] STM32CubeIDE 2.2.0+
+- [ ] STM32CubeMX 6.18.0+
+- [ ] ST Edge AI Core 4.0.0 (Neural-ART NPU 지원 포함)
+- [ ] NUCLEO-N6570 보드 (STM32N6 Nucleo)
+- [ ] 카메라 모듈 (MIPI CSI-2)
 - [ ] USB-C 케이블 (데이터)
 
 ---
