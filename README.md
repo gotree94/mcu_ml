@@ -12,9 +12,9 @@
 | 시간 | 주제 | 내용 |
 |------|------|------|
 | 09:00-09:30 | **Orientation** | MCU ML 3일 개요, <br>보드(ESP32/STM32F411/STM32N6) 소개, <br>개발 환경 점검 |
-| 09:30-10:30 | **TinyML 역사와 개념** | TinyML 정의, <br>Cloud AI → Edge AI → TinyML 계층 구조, <br>역사 타임라인(2008~2026), 3대 축(알고리즘/SW/HW) |
-| 10:30-11:00 | **MCU ML 생태계** | 벤더별 현황(ST/NXP/Renesas/Espressif/Nordic), <br>오픈 런타임(TFLite Micro) vs 벤더 종속(X-CUBE-AI/eIQ), <br>Mbed EOL, Edge Impulse Qualcomm 인수 |
-| 11:00-11:30 | **참고도서 가이드** | TinyML 추천 도서, <br>난이도별/주제별 학습 로드맵 |
+| 09:30-10:30 | **참고도서 가이드** | TinyML 추천 도서, <br>난이도별/주제별 학습 로드맵 |
+| 10:30-11:00 | **TinyML 역사와 개념** | TinyML 정의, <br>Cloud AI → Edge AI → TinyML 계층 구조, <br>역사 타임라인(2008~2026), 3대 축(알고리즘/SW/HW) |
+| 11:00-11:30 | **MCU ML 생태계** | 벤더별 현황(ST/NXP/Renesas/Espressif/Nordic), <br>오픈 런타임(TFLite Micro) vs 벤더 종속(X-CUBE-AI/eIQ), <br>Mbed EOL, Edge Impulse Qualcomm 인수 |
 | 11:30-12:30 | **실습: MNIST → TFLite 변환** | Keras 학습 → Float32 TFLite → Int8 양자화, <br>정확도/속도/크기 비교, 양자화 영향 분석 |
 | 12:30-13:30 | 점심 | | |
 | 13:30-14:30 | **ESP32 아키텍처 이해** | Xtensa LX6 듀얼코어(Core0 WiFi Core1 App), <br>SRAM 320KB 제약, Flash 4MB, <br>주변장치 공유 구조, FreeRTOS xTaskCreatePinnedToCore |
