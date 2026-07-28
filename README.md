@@ -1,22 +1,7 @@
 # Embedded ML 3일 교육 커리큘럼
 
-**총 시간**: 20시간 (1일차 7h + 2일차 7h + 3일차 6h)
+**총 시간**: 20시간 (1일차 7h + 2일차 7h + 3일차 6h) <br>
 **목표**: TinyML 기초부터 NPU 가속 추론까지, MCU 3종(ESP32 / STM32F411 / STM32N6) 실습
-
----
-
-## 교육 자료 목록
-
-| 파일 | 설명 |
-|------|------|
-| `TinyML_history_ML.md` | TinyML 역사, 발전 방향, MCU ML 생태계 총정리 |
-| `embedded_ml_book_analysis.md` | 임베디드 ML/AI 도서 종합 분석 (124권) |
-| `MCU_ML_산업현실_분석.md` | 서적 vs 실제 산업 현실 비교 (벤더 종속, 시장 규모) |
-| `MCU_OS_ML_Survey_2026.md` | MCU 벤더별 OS/ML 지원 현황, Mbed EOL, 생태계 |
-| `PC_MNIST_to_TFLite_실습.md` | MNIST → TFLite Float32/Int8 PC 실습 (정확도/속도 비교) |
-| `ESP32-CAM_Complete_Guide.md` | ESP32-CAM 셋업 → 웹서버 → YOLO → Edge Impulse 전 과정 |
-| `xtensaLX6.png` | Xtensa LX6 아키텍처 다이어그램 |
-| `xtensaLX7.png` | Xtensa LX7 아키텍처 다이어그램 |
 
 ---
 
