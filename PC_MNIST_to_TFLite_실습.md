@@ -360,6 +360,16 @@ print(f"{'='*50}")
 ==================================================
 ```
 
+```
+512KB SRAM
+├── IRAM (Instruction RAM):  ~256KB  ← CPU 코드 실행용 (Flash 캐시 포함)
+├── DRAM (Data RAM):         ~256KB  ← TFLite 모델 + 텐서 + 힙/스택
+│   ├── WiFi/BLE 스택:       ~190KB  ← OS에서 선점
+│   ├── FreeRTOS + 서비스:    ~30KB
+│   └── 사용 가능한 DRAM:     ~36KB   ← 여기 TFLite가 들어가야 함
+```
+
+
 ### 3.4 양자화의 원리
 
 ```
