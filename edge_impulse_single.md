@@ -154,17 +154,19 @@ try:
         # Float32 프로파일링
         print(f"  [Float32] 프로파일링 중...")
         p_f32 = ei.model.profile(model=model, device=target)
-        print(f"  Float32 → RAM: {p_f32.summary()['memory']['tflite']['ram']/1024:.1f} KB"
-              f" | ROM: {p_f32.summary()['memory']['tflite']['rom']/1024:.1f} KB"
-              f" | 추론: {p_f32.summary()['timePerInferenceMs']} ms")
+        m = p_f32['memory']['tflite']
+        print(f"  Float32 → RAM: {m['ram']/1024:.1f} KB"
+              f" | ROM: {m['rom']/1024:.1f} KB"
+              f" | 추론: {p_f32['timePerInferenceMs']} ms")
 
         # Int8 프로파일링 (양자화된 TFLite 파일로)
         print(f"  [Int8] 프로파일링 중...")
         try:
             p_int8 = ei.model.profile(model=int8_path, device=target)
-            print(f"  Int8    → RAM: {p_int8.summary()['memory']['tflite']['ram']/1024:.1f} KB"
-                  f" | ROM: {p_int8.summary()['memory']['tflite']['rom']/1024:.1f} KB"
-                  f" | 추론: {p_int8.summary()['timePerInferenceMs']} ms")
+            m8 = p_int8['memory']['tflite']
+            print(f"  Int8    → RAM: {m8['ram']/1024:.1f} KB"
+                  f" | ROM: {m8['rom']/1024:.1f} KB"
+                  f" | 추론: {p_int8['timePerInferenceMs']} ms")
         except Exception as e:
             print(f"  Int8 프로파일링 실패: {e}")
 
@@ -835,6 +837,132 @@ print("차이가 크다면: 링커 스크립트, 최적화 옵션, TFLite Micro 
 | Arduino Nano 33 BLE | nRF52840 (Cortex-M4F) | Harvard TinyML 코스 |
 | LiteX VexRiscv | RISC-V | 오픈소스 CPU |
 | SiFive HiFive1 | RISC-V | Freedom E310 |
+
+---
+
+### Renode 고급: 가상 센서 데이터 주입 (MAX30102 PPG 예제)
+
+Renode는 **GPIO, I2C, SPI, UART 등 모든 주변장치를 소프트웨어로 모델링**하므로, 가상 센서를 연결해 실제와 동일한 환경에서 TFLite 모델을 검증할 수 있습니다.
+
+#### 작동 원리
+
+```
+Colab Python (pyrenode3)
+    │
+    ├── Renode 가상 I2C 버스 생성
+    ├── MAX30102 가상 센서 주입 (I2C slave, 주소 0x57)
+    ├── MCU가 I2C로 PPG 데이터 요청 → 센서가 미리 준비된 데이터 반환
+    ├── MCU가 run_classifier() 실행 (심박수/SpO2 추정)
+    └── 결과 UART 출력 확인
+```
+
+#### Cell 7: 가상 MAX30102 PPG 센서 데이터 생성
+
+```python
+# Colab Cell 7: PPG 테스트 데이터 생성 (PC에서 생성, MCU로 전달)
+import numpy as np
+
+# 실제 PPG 신호 시뮬레이션 (샘플링 100Hz, 10초 = 1000 samples)
+fs = 100       # 100Hz
+duration = 10  # 10초
+t = np.linspace(0, duration, fs * duration)
+
+# 정상 심박수 72 BPM = 1.2Hz
+bpm = 72
+heartbeat_freq = bpm / 60
+
+# PPG 신호: DC 성분 + 맥파 (AC 성분)
+ppg_signal = 0.5 + 0.3 * np.sin(2 * np.pi * heartbeat_freq * t)
+# 노이즈 추가
+ppg_signal += np.random.normal(0, 0.02, len(ppg_signal))
+
+# int16 양자화 (Edge Impulse 입력 형식)
+ppg_int16 = (ppg_signal * 32767).astype(np.int16)
+
+# Renode용 .bin 저장 (바이너리)
+ppg_int16.tofile('ppg_test_data.bin')
+print(f"PPG 데이터 생성: {len(ppg_int16)} samples, {len(ppg_int16)*2} bytes")
+
+# 시각화 (선택)
+import matplotlib.pyplot as plt
+plt.figure(figsize=(12, 3))
+plt.plot(t[:200], ppg_signal[:200])
+plt.title("Simulated PPG Signal (first 2 seconds)")
+plt.xlabel("Time (s)")
+plt.ylabel("Normalized Amplitude")
+plt.grid(True)
+plt.show()
+```
+
+#### Cell 8: Renode 가상 센서 + MCU 시뮬레이션
+
+```python
+# Colab Cell 8: Renode에서 가상 I2C 센서와 MCU 연동
+from pyrenode3 import emulation
+import time
+
+machine = emulation.Machine("stm32f411")
+machine.load_platform("renode-1.15.3/platforms/boards/stm32f411-nucleo.repl")
+
+# I2C1 버스에 가상 MAX30102 연결 (I2C 주소 0x57)
+i2c1 = machine.GetPeripheral("i2c1")
+i2c1.CreateSlave(0x57, "max30102_mock")
+
+# PPG 데이터 파일을 Renode 메모리에 로드
+machine.LoadDataFile("ppg_test_data.bin", 0x20001000)  # SRAM 영역
+
+# MCU 바이너리 로드 (PPG 데이터를 I2C로 읽어서 추론하는 코드)
+machine.LoadExecutable("mnist_test.elf")
+
+# UART 캡처
+uart = machine.GetPeripheral("usart2")
+uart.StartRecording("renode_sensor_output.txt")
+
+# I2C 트래픽 로깅 (선택)
+machine.SetLogLevel(3)  # I2C 통신 로그 출력
+
+# 시뮬레이션 실행
+machine.Start(50)  # 50ms MCU 시간
+time.sleep(3)
+machine.Pause()
+
+# 결과 출력
+with open("renode_sensor_output.txt") as f:
+    print(f.read())
+
+machine.Dispose()
+```
+
+#### Renode Monitor 센서 디버깅 명령어
+
+```bash
+# Renode Monitor (Colab 터미널 또는 Python에서 호출)
+
+# I2C 버스 상태 확인
+monitor.Execute("i2c1 Status")
+
+# 특정 GPIO 핀 강제 설정 (센서 인터럽트 시뮬레이션)
+monitor.Execute("gpioA Pin5 true")    # PA5 = HIGH
+monitor.Execute("gpioA Pin5 false")   # PA5 = LOW
+
+# 메모리에 센서 데이터 직접 주입
+monitor.Execute("sysbus.ram WriteDoubleWord 0x20001000 0x3F800000")  # float 1.0
+
+# 시뮬레이션 속도 제어
+monitor.Execute("emulation SetGlobalQuantum 1000")  # 1000us 단위 실행
+```
+
+#### 실습: 센서 데이터 종류별 Renode 시뮬레이션
+
+| 센서 | 인터페이스 | 데이터 형식 | TinyML 활용 |
+|------|-----------|------------|------------|
+| MAX30102 (PPG) | I2C (0x57) | 32bit int, FIFO | 심박수/SpO2 이상 감지 |
+| MPU6050 (IMU) | I2C (0x68) | 3축 accel + 3축 gyro | 제스처 인식 (Magic Wand) |
+| HTS221 (온습도) | I2C (0x5F) | 16bit temp + humidity | 이상 탐지 (Threshold) |
+| 가상 마이크 | I2S/PDM | 16bit PCM @ 16kHz | 키워드 인식 (Speech) |
+
+> **한계점:** Renode의 센서 모델은 실제 타이밍과 차이가 있을 수 있습니다.
+> 최종 검증은 항상 **실제 보드**에서 수행해야 합니다.
 
 ---
 
