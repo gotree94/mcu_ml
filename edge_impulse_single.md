@@ -96,6 +96,9 @@ import edgeimpulse as ei
 import numpy as np
 import os
 import json
+import io
+import re
+from contextlib import redirect_stdout
 
 # API 키 설정
 ei.API_KEY = "ei_your_admin_api_key_here"
@@ -163,10 +166,18 @@ try:
         print(f"  타겟: {target}")
         print(f"{'='*50}")
 
+        def parse_profile(profile_obj):
+            """summary()의 stdout 출력에서 JSON 추출"""
+            with io.StringIO() as buf, redirect_stdout(buf):
+                profile_obj.summary()
+                out = buf.getvalue()
+            match = re.search(r'\{.*\}', out, re.DOTALL)
+            return json.loads(match.group()) if match else {}
+
         # Float32 프로파일링
         print(f"  [Float32] 프로파일링 중...")
         p_f32 = ei.model.profile(model=model, device=target)
-        j_f32 = json.loads(p_f32.summary)  # summary 속성 → JSON 문자열 → dict
+        j_f32 = parse_profile(p_f32)
         m_f32 = j_f32['memory']['tflite']
         print(f"  Float32 → RAM: {m_f32['ram']/1024:.1f} KB"
               f" | ROM: {m_f32['rom']/1024:.1f} KB"
@@ -177,7 +188,7 @@ try:
         print(f"  [Int8] 프로파일링 중...")
         try:
             p_int8 = ei.model.profile(model=int8_path, device=target)
-            j_int8 = json.loads(p_int8.summary)
+            j_int8 = parse_profile(p_int8)
             m_int8 = j_int8['memory']['tflite']
             print(f"  Int8    → RAM: {m_int8['ram']/1024:.1f} KB"
                   f" | ROM: {m_int8['rom']/1024:.1f} KB"
