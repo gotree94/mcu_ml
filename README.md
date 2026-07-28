@@ -5,21 +5,6 @@
 
 ---
 
-## 교육 자료 목록
-
-| 파일 | 설명 |
-|------|------|
-| `TinyML_history_ML.md` | TinyML 역사, 발전 방향, MCU ML 생태계 총정리 |
-| `embedded_ml_book_analysis.md` | 임베디드 ML/AI 도서 종합 분석 (124권) |
-| `MCU_ML_산업현실_분석.md` | 서적 vs 실제 산업 현실 비교 (벤더 종속, 시장 규모) |
-| `MCU_OS_ML_Survey_2026.md` | MCU 벤더별 OS/ML 지원 현황, Mbed EOL, 생태계 |
-| `PC_MNIST_to_TFLite_실습.md` | MNIST → TFLite Float32/Int8 PC 실습 (정확도/속도 비교) |
-| `ESP32-CAM_Complete_Guide.md` | ESP32-CAM 셋업 → 웹서버 → YOLO → Edge Impulse 전 과정 |
-| `xtensaLX6.png` | Xtensa LX6 아키텍처 다이어그램 |
-| `xtensaLX7.png` | Xtensa LX7 아키텍처 다이어그램 |
-
----
-
 ## 1일차: TinyML 기초 + ESP32 실습 (7시간)
 
 **목표**: TinyML 개념 이해, PC에서 모델 변환 경험, ESP32에서 추론 실행
