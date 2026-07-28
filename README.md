@@ -106,7 +106,7 @@
 - [ ] 심박 센서 (PPG, 선택)
 - [ ] `pip install tensorflow scikit-learn`
 
-> **참고:** STM32CubeIDE v2.0.0부터 CubeMX가 분리되었습니다. 두 툴을 각각 설치해야 합니다.
+> **참고:** STM32CubeIDE v2.0.0부터 CubeMX가 분리되었습니다. 두 툴을 각각 설치해야 합니다. <br>
 > X-Cube-AI 레거시 대신 **STM32Cube AI Studio**(신규 standalone GUI) 또는 **ST Edge AI Core 4.0.0**(CLI) 사용을 권장합니다.
 
 ### Day 3 (STM32N6)
