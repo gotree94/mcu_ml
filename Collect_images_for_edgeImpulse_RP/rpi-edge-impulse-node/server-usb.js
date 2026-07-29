@@ -17,7 +17,6 @@ const archiver = require('archiver');
 
 const PORT = process.env.PORT || 5000;
 const CAPTURE_DIR = path.join(__dirname, 'captured_images');
-const LABEL_DIRS = path.join(CAPTURE_DIR, '__labels__');
 
 const app = express();
 const server = http.createServer(app);
