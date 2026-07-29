@@ -378,6 +378,17 @@ httpd_handle_t camera_httpd = NULL;
 ### 4.2 LED 제어 웹 서버 (간단 버전)
 
 ```cpp
+#define WIFI_SSID "SSID"
+#define WIFI_PASS "PASSWD"
+#define HOSTNAME "esp32cam"
+```
+
+```cpp
+    //camera.pinout.wroom_s3();
+    camera.pinout.aithinker();
+```
+
+```cpp
 #include <WiFi.h>
 #include <WebServer.h>
 
