@@ -24,7 +24,7 @@
 
 ### 준비물
 
-- [ ] NUCLEO-N6570 보드 (STM32N6 Nucleo) - https://www.st.com/en/evaluation-tools/nucleo-n6570.html
+- [ ] NUCLEO-N6570 보드 (STM32N6 Nucleo) - https://www.st.com/en/evaluation-tools/nucleo-n657x0-q.html
 - [ ] 카메라 모듈 (MIPI CSI-2, B-CAMS-IMX 권장)
 - [ ] USB-C 케이블 (데이터 전송 지원)
 - [ ] STM32CubeIDE 2.2.0+
@@ -37,7 +37,7 @@
 
 ### ST Edge AI Core 설치
 
-1. https://www.st.com/en/development-tools/st-edge-ai-core.html 방문
+1. https://www.st.com/en/development-tools/stedgeai-windows-onlineinstaller 방문
 2. **Get Software** → 로그인 후 다운로드
 3. 설치 프로그램 실행:
    - Windows: `ST Edge AI Core 4.0.0.exe`
