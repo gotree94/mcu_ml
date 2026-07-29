@@ -1612,3 +1612,61 @@ python -c "import serial.tools.list_ports; print([p.device for p in serial.tools
 | `mnist_to_serial_format.py` | mnist.npz → raw/CSV/Base64/HEX 변환 |
 | `serial_send_mnist.py` | PC → MCU 시리얼 전송 및 결과 수신 |
 | `mnis_serial_receiver.ino` | ESP32 수신 및 TFLite Micro 추론 |
+
+
+---
+
+## 이미지 파일 확인하기
+
+* C:\Users\user\.keras\datasets\mnist.npz
+* 아래의 코드를 같은 디렉토리에 작성하여 실행하면 
+C:\Users\user\Desktop\MNIST_Images 에 학습에 사용된 파일이 다 보이게 됨.
+
+```
+import os
+import numpy as np
+from PIL import Image
+
+# mnist.npz 위치
+npz_path = r"C:\Users\user\.keras\datasets\mnist.npz"
+
+# 저장할 폴더
+output_dir = r"C:\Users\user\Desktop\MNIST_Images"
+
+# 데이터 읽기
+data = np.load(npz_path)
+
+x_train = data["x_train"]
+y_train = data["y_train"]
+
+x_test = data["x_test"]
+y_test = data["y_test"]
+
+
+def save_dataset(images, labels, dataset_name):
+    base = os.path.join(output_dir, dataset_name)
+
+    # 숫자별 폴더 생성
+    for i in range(10):
+        os.makedirs(os.path.join(base, str(i)), exist_ok=True)
+
+    # 이미지 저장
+    for idx, (img, label) in enumerate(zip(images, labels)):
+        filename = os.path.join(
+            base,
+            str(label),
+            f"{idx:06d}.png"
+        )
+
+        Image.fromarray(img).save(filename)
+
+    print(f"{dataset_name} 저장 완료 ({len(images)}장)")
+
+
+save_dataset(x_train, y_train, "train")
+save_dataset(x_test, y_test, "test")
+
+print("모든 이미지 저장 완료!")
+print("저장 위치:", output_dir)
+```
+
