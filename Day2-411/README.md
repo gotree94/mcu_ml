@@ -586,13 +586,21 @@ Int8 TFLite:    ~7 KB
 1. **CubeMX 실행** → 새 프로젝트 생성 (NUCLEO-F411RE)
 2. **Software Packs → Select Components → X-CUBE-AI** 활성화
 3. **Pinout & Configuration → Software Packs → X-CUBE-AI** 항목 선택
-4. **Add network** 버튼 클릭 → `.tflite` 파일 선택 (`model/ppg_model_i8.tflite`)
+4. **Add network** 버튼 클릭 → 아래 옵션 설정 후 `.tflite` 파일 선택
 
-   > 처음 열면 `network_1` 항목이 이미 있지만 내용은 비어 있습니다. `Add network`를 눌러 새로 추가하거나, 기존 `network_1`의 **Select** 버튼으로 파일을 지정합니다.
+   | 옵션 | 항목 | 권장 설정 | 설명 |
+   |------|------|----------|------|
+   | **Model type** | `TFLite` / `Keras` / `ONNX` | `TFLite` | PC에서 변환한 `.tflite` 파일 사용 |
+   | **Runtime** | `STM32Cube.AI MCU runtime` / `TF Lite micro runtime` | `STM32Cube.AI MCU runtime` | STM32 특화 최적화 코드 생성. TFLite Micro는 범용 |
+   | **Compression** | `None` / `Low` / `Medium` / `High` | `None` | 압축률 ↑ = 정확도 ↓. 첫 분석은 None으로 시작 |
+   | **Optimization** | `Balanced` / `Time` / `Ram` | `Balanced` | Time = 속도 우선(ROM ↑), Ram = 메모리 우선(속도 ↓) |
+   | **Validation Input** | `Random numbers` / `Browse` | `Random numbers` | 분석을 위한 랜덤 입력. Browse는 실제 테스트 파일 |
+   | **Validation Option** | `None` / `Browse` | `None` | 정확도 검증용 (선택사항) |
+
+   > 처음 열면 `network_1` 항목이 이미 있지만 내용은 비어 있습니다. `Add network` 버튼을 눌러 새로 추가합니다. 기존 `network_1`을 사용하려면 **Select** 버튼으로 파일을 직접 지정하세요.
 
 5. 모델이 추가되면 하단 **Analysis** 탭에서:
    - **Target**: `STM32F411RE` (또는 `cortex-m4f`)
-   - **Validation**: `None` (테스트 데이터 없이 진행)
    - **Analyze** 버튼 클릭
 
 6. **Analyze 실패 시 대처:**
@@ -614,7 +622,7 @@ Int8 TFLite:    ~7 KB
 | 추론 시간 (M4 @84MHz) | ~5-10 ms |
 | MACC 연산 수 | ~50K |
 
-6. **Generate Code** → 프로젝트에 통합
+7. **Generate Code** → 프로젝트에 통합
 
 #### 방법 B: ST Edge AI Core (CLI) 사용
 
