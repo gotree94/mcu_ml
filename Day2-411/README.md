@@ -607,9 +607,14 @@ Int8 TFLite:    ~7 KB
 
    | 에러 상황 | 원인 | 해결 |
    |-----------|------|------|
+   | `long paths are not enabled` | Windows 경로 제한(260자) 초과 | 레지스트리 수정 또는 모델/프로젝트를 짧은 경로에 배치 (아래 참고) |
    | `Unsupported operator` | X-Cube-AI 버전이 해당 TFLite op를 미지원 | `model/ppg_model_f32.tflite` (float32)로 재시도 |
    | `Quantization mismatch` | int8 양자화 파라미터 불일치 | float32 모델로 분석 → X-Cube-AI가 자체 양자화 |
    | `Analysis failed` (일반) | 모델-타겟 간 호환성 문제 | CubeMX + X-CUBE-AI 최신 버전인지 확인 |
+
+   > **long paths 에러 해결 방법**:
+   > - **방법 1 (권장)**: 모델 파일과 CubeMX 프로젝트를 짧은 경로에 배치 (예: `C:\model\`에 .tflite 복사)
+   > - **방법 2**: 레지스트리 편집 — `regedit` 실행 → `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem` → `LongPathsEnabled` 값을 `0` → `1`로 변경 → 재부팅
 
    > **권장**: 첫 분석은 **float32 모델**(`ppg_model_f32.tflite`)로 시도한 뒤, X-Cube-AI가 분석 결과에서 제공하는 양자화 옵션을 적용하는 것이 안정적입니다. Int8 모델이 Analyze에 실패하면 float32로 바꿔서 다시 시도하세요.
 
