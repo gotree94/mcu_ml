@@ -4,14 +4,14 @@
 
 | 시간 | 주제 | 내용 |
 |------|------|------|
-| 09:00-09:30 | **STM32F411 개요** | Cortex-M4 FPU (84MHz), <br> SRAM 128KB, Flash 512KB, NUCLEO-F411RE 보드, STM32CubeIDE 환경 |
-| 09:30-10:30 | **STM32CubeMX + HAL 기초** | GPIO/UART/TIM 설정, 프로젝트 생성, <br> printf 리디렉션, LED Blink |
-| 10:30-11:30 | **X-Cube-AI 이해** | X-Cube-AI 워크플로우: PC 모델 → .tflite → C 코드 변환, <br> RAM/ROM 최적화, 벤치마킹 |
-| 11:30-12:30 | **실습: 심박 데이터 분류 모델** | Python PPG 데이터 생성 → Keras DNN 학습 <br> → X-Cube-AI 변환 → STM32F411 포팅 |
+| 09:00-09:30 | **STM32F411 개요** | Cortex-M4 FPU (84MHz), SRAM 128KB, Flash 512KB, NUCLEO-F411RE 보드, STM32CubeIDE 환경 |
+| 09:30-10:30 | **STM32CubeMX + HAL 기초** | GPIO/UART/TIM 설정, 프로젝트 생성, printf 리디렉션, LED Blink |
+| 10:30-11:30 | **X-Cube-AI 이해** | X-Cube-AI 워크플로우: PC 모델 → .tflite → C 코드 변환, RAM/ROM 최적화, 벤치마킹 |
+| 11:30-12:30 | **실습: 심박 데이터 분류 모델** | Python PPG 데이터 생성 → Keras DNN 학습 → X-Cube-AI 변환 → STM32F411 포팅 |
 | 12:30-13:30 | 점심 | |
-| 13:30-15:00 | **CMSIS-NN 최적화** | Cortex-M4용 DSP 명령어(SIMD), CMSIS-NN 커널(s8/s16), <br> 가중치/활성화 8비트 양자화 |
-| 15:00-16:30 | **FreeRTOS + AI 태스크 통합** | 센서 수집 Task → Queue 전달 → AI 추론 Task <br> → 결과 출력 Task, Stack 크기 설계 |
-| 16:30-17:00 | **프로젝트 코드 리뷰 + 최적화 팁** | Flash/RAM 사용량 분석, <br> CubeIDE 프로파일러로 추론 시간 측정, 추가 최적화 방안 |
+| 13:30-15:00 | **CMSIS-NN 최적화** | Cortex-M4용 DSP 명령어(SIMD), CMSIS-NN 커널(s8/s16), 가중치/활성화 8비트 양자화 |
+| 15:00-16:30 | **FreeRTOS + AI 태스크 통합** | 센서 수집 Task → Queue 전달 → AI 추론 Task → 결과 출력 Task, Stack 크기 설계 |
+| 16:30-17:00 | **프로젝트 코드 리뷰 + 최적화 팁** | Flash/RAM 사용량 분석, CubeIDE 프로파일러로 추론 시간 측정, 추가 최적화 방안 |
 
 **2일차 핵심 포인트**:
 - Cortex-M4 FPU는 float32 연산 가능하지만 SRAM 128KB가 한계
@@ -202,17 +202,16 @@ int __io_putchar(int ch)
 /* USER CODE BEGIN 0 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if (GPIO_Pin == GPIO_PIN_0)
-    {
-        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-        printf("Button pressed!\r\n");
-    }
+    /* EXTI0(PA0) 전용. PA0만 EXTI0에 할당되어 조건문 없이 사용 가능 */
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+    printf("Button pressed!\r\n");
 }
 /* USER CODE END 0 */
 ```
 
-`main.c`의 `MX_GPIO_Init()` 함수 내에서 PA0 인터럽트 활성화는 CubeMX에서 자동 설정됩니다.
-CubeMX에서 PA0을 `GPIO_EXTI0`으로 설정하고 NVIC에서 EXTI0 인터럽트를 Enable해야 합니다.
+> **참고:** `HAL_GPIO_EXTI_Callback`은 EXTI 라인 번호만 전달하므로 `GPIO_Pin == GPIO_PIN_0`은 PA0/PB0/PC0 등 **포트까지 구분하지 못합니다**. NUCLEO-F411RE는 PA0만 EXTI0에 할당되어 있어 조건문 없이 사용해도 됩니다. 여러 핀이 같은 EXTI 라인을 공유한다면 포트 레지스터(`GPIOA->IDR`)를 직접 읽어야 합니다.
+
+CubeMX에서 PA0을 `GPIO_EXTI0`으로 설정하고 **NVIC → EXTI0 global interrupt**를 Enable해야 합니다.
 
 ### 2.8 TIM (타이머) 설정
 
