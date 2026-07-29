@@ -37,7 +37,7 @@
 
 ### ST Edge AI Core 설치
 
-1. https://www.st.com/en/development-tools/stedgeai-windows-onlineinstaller 방문
+1. https://www.st.com/en/development-tools/stedgeai-core.html  방문
 2. **Get Software** → 로그인 후 다운로드
 3. 설치 프로그램 실행:
    - Windows: `ST Edge AI Core 4.0.0.exe`
