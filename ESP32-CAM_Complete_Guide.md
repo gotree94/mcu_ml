@@ -742,8 +742,28 @@ cv2.destroyAllWindows()
 
 ### 6.3 Wi-Fi 설정 및 카메라 모델 변경
 
-
 * Collect_Images_for_EdgeImpulse.ino
+
+```cpp
+#define WIFI_SSID "SSID"
+#define WIFI_PASS "PASSWD"
+#define HOSTNAME "esp32cam"
+```
+
+```cpp
+void setup() {
+    delay(3000);
+    Serial.begin(115200);
+    Serial.println("___IMAGE COLLECTION SERVER___");
+
+    // camera settings
+    // replace with your own model!
+    //camera.pinout.wroom_s3();
+    camera.pinout.aithinker();
+    camera.brownout.disable();
+```
+
+* 전체 코드
 
 ```cpp
 /**
