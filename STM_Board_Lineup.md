@@ -88,6 +88,8 @@
 
 ![](bd/STM32N6570-DK_B-CAMS-IMX.png)
 
+<img src="bd/STM32N6570-DK_B-CAMS-IMX.png" width="10%">
+
 <br>
 
 ## 2. 💰 Affordable AI Accelerated Prototyping (가성비 NPU 프로토타이핑)
