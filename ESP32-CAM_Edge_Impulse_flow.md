@@ -62,3 +62,21 @@ Object detection bounding boxes:
 - `ei_classifier_inferencing_categories` 배열은 모델 헤더(`stm32_case1_inferencing.h`)에 자동 생성됨
 - Edge Impulse의 원본 예제는 OD/분류 겸용으로 설계되었으나, 실제로는 **둘 중 하나만** 유효함
 - `run_classifier()`는 항상 `result.classification[]`을 채우므로 분류 결과는 항상 읽을 수 있음
+
+
+![](edge_impulse_setting/001.png)
+
+![](edge_impulse_setting/002.png)
+
+![](edge_impulse_setting/003.png)
+
+![](edge_impulse_setting/004.png)
+
+![](edge_impulse_setting/005.png)
+
+![](edge_impulse_setting/006.png)
+
+![](edge_impulse_setting/007.png)
+
+![](edge_impulse_setting/008.png)
+
