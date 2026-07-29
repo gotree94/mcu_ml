@@ -577,13 +577,6 @@ Int8 TFLite:    ~7 KB
 테스트 정확도:  ~95%+
 ```
 
-```
-=== 모델 크기 비교 ===
-Float32:  37868 bytes (37.0 KB)
-Int8:     15272 bytes (14.9 KB)
-감소율:  59.7%
-```
-
 > **실제 심박 데이터로 대체**: 실제 PPG 센서(MAX30102 등) 데이터가 있다면 `generate_ppg_data.py` 대신 실제 수집 데이터를 로드하여 사용하세요. `X = np.load("real_ppg.npy")` 형태로 대체 가능합니다.
 
 ### 4.3 X-Cube-AI로 모델 변환
@@ -592,12 +585,25 @@ Int8:     15272 bytes (14.9 KB)
 
 1. **CubeMX 실행** → 새 프로젝트 생성 (NUCLEO-F411RE)
 2. **Software Packs → Select Components → X-CUBE-AI** 활성화
-3. **Pinout & Configuration → X-CUBE-AI** 탭 선택
-4. **Add** → `.tflite` 파일 추가 (`model/ppg_model_i8.tflite`)
-5. **Analysis** 탭:
+3. **Pinout & Configuration → Software Packs → X-CUBE-AI** 항목 선택
+4. **Add network** 버튼 클릭 → `.tflite` 파일 선택 (`model/ppg_model_i8.tflite`)
+
+   > 처음 열면 `network_1` 항목이 이미 있지만 내용은 비어 있습니다. `Add network`를 눌러 새로 추가하거나, 기존 `network_1`의 **Select** 버튼으로 파일을 지정합니다.
+
+5. 모델이 추가되면 하단 **Analysis** 탭에서:
    - **Target**: `STM32F411RE` (또는 `cortex-m4f`)
-   - **Validation**: `None` (또는 test 데이터셋 업로드)
+   - **Validation**: `None` (테스트 데이터 없이 진행)
    - **Analyze** 버튼 클릭
+
+6. **Analyze 실패 시 대처:**
+
+   | 에러 상황 | 원인 | 해결 |
+   |-----------|------|------|
+   | `Unsupported operator` | X-Cube-AI 버전이 해당 TFLite op를 미지원 | `model/ppg_model_f32.tflite` (float32)로 재시도 |
+   | `Quantization mismatch` | int8 양자화 파라미터 불일치 | float32 모델로 분석 → X-Cube-AI가 자체 양자화 |
+   | `Analysis failed` (일반) | 모델-타겟 간 호환성 문제 | CubeMX + X-CUBE-AI 최신 버전인지 확인 |
+
+   > **권장**: 첫 분석은 **float32 모델**(`ppg_model_f32.tflite`)로 시도한 뒤, X-Cube-AI가 분석 결과에서 제공하는 양자화 옵션을 적용하는 것이 안정적입니다. Int8 모델이 Analyze에 실패하면 float32로 바꿔서 다시 시도하세요.
 
 **분석 결과 예시**:
 
