@@ -298,12 +298,18 @@ STM32F411에서 추론 실행
 
 1. CubeMX에서 프로젝트 열기
 2. **Pinout & Configuration** → **Software Packs** → **Select Components**
-3. 창이 열리면 **STMicroelectronics → X-CUBE-AI** 우측 체크박스 활성화
-4. **OK** 클릭
-5. 활성화 확인 방법:
-   - **Pinout & Configuration** 좌측 트리 최하단에 **Software Packs** 항목이 생기고, 그 아래 **X-CUBE-AI**가 표시됨
+3. 창 좌측 트리에서 **STMicroelectronics → X-CUBE-AI** 선택
+4. 우측 **Artificial Intelligence** 항목을 펼쳐서 **Selection** 체크박스 활성화
+5. 하단 **OK** 클릭
+6. 활성화 확인:
+   - **Pinout & Configuration** 좌측 트리 최하단 **Software Packs** 아래 **X-CUBE-AI** 항목 생성됨
    - 또는 **Project Manager → Advanced Settings**에서 X-CUBE-AI 관련 옵션 확인 가능
-   - 탭이 안 보이면 **Pinout & Configuration → Software Packs** 항목을 펼쳐서 확인
+
+> **Device Application 내 옵션**: X-CUBE-AI 항목을 클릭하면 하위에 `System`, `Application`, `Validation` 등이 보입니다.
+> - **System**: RTOS/클럭 설정 (기본값 유지)
+> - **Application**: 모델(.tflite) 추가하는 핵심 항목 (4.3절에서 진행)
+> - **Validation**: 정확도 검증용 테스트 데이터 (선택)
+> - 지금 단계에서는 추가 설정 없이 넘어가도 됩니다.
 
 ---
 
