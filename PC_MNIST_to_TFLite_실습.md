@@ -944,7 +944,8 @@ both_wrong = np.sum((pred_f32 != y_test) & (pred_i8 != y_test))
 print(f"  Both correct: {common_correct} images ({common_correct/100:.1f}%)")
 print(f"  Float32 only correct (Quantization Loss): {f32_only_correct} images ({f32_only_correct/100:.1f}%)")
 print(f"  Int8 only correct (Quantization Gain): {i8_only_correct} images ({i8_only_correct/100:.1f}%)")
-print(f"  Both wrong: {both_wrong} images ({both_wrong/100:.1f}%)")```
+print(f"  Both wrong: {both_wrong} images ({both_wrong/100:.1f}%)")
+```
 
 ---
 
