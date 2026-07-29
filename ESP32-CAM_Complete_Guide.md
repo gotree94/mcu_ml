@@ -734,7 +734,7 @@ cv2.destroyAllWindows()
 
 * Collect_Images_for_EdgeImpulse.ino
 
-```aduino
+```cpp
 /**
  * Collect images for Edge Impulse image
  * classification / object detection
