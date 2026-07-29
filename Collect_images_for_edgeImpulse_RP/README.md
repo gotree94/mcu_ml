@@ -339,6 +339,8 @@ npm run pi     # Pi Camera 서버 실행
 
 ### 버전 A: USB 웹캠 (`server-usb.js`)
 
+![](001.png)
+
 **동작 방식:** 브라우저의 `getUserMedia()`로 카메라 접근 → 서버는 저장/ZIP만 담당
 
 ```bash
