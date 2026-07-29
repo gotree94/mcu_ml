@@ -735,18 +735,71 @@ cv2.destroyAllWindows()
 * Collect_Images_for_EdgeImpulse.ino
 
 ```aduino
-#define WIFI_SSID "YOUR_WIFI_SSID"
-#define WIFI_PASS "YOUR_WIFI_PASSWORD"
+/**
+ * Collect images for Edge Impulse image
+ * classification / object detection
+ *
+ * BE SURE TO SET "TOOLS > CORE DEBUG LEVEL = INFO"
+ * to turn on debug messages
+ */
+
+// if you define WIFI_SSID and WIFI_PASS before importing the library, 
+// you can call connect() instead of connect(ssid, pass)
+//
+// If you set HOSTNAME and your router supports mDNS, you can access
+// the camera at http://{HOSTNAME}.local
+
+#define WIFI_SSID "SSID"
+#define WIFI_PASS "PASSWD"
 #define HOSTNAME "esp32cam"
-```
 
-* board_config.h
 
-```c
-// 카메라 모델 설정 (36라인 근처)
-// 사용 중인 보드에 맞게 주석 처리/해제
-// #define CAMERA_MODEL_ESP_EYE
-#define CAMERA_MODEL_AI_THINKER    // AI-Thinker ESP32-CAM 사용 시
+#include <eloquent_esp32cam.h>
+#include <eloquent_esp32cam/extra/esp32/wifi/sta.h>
+#include <eloquent_esp32cam/viz/image_collection.h>
+
+using eloq::camera;
+using eloq::wifi;
+using eloq::viz::collectionServer;
+
+
+void setup() {
+    delay(3000);
+    Serial.begin(115200);
+    Serial.println("___IMAGE COLLECTION SERVER___");
+
+    // camera settings
+    // replace with your own model!
+    //camera.pinout.wroom_s3();
+    camera.pinout.aithinker();
+    camera.brownout.disable();
+    // Edge Impulse models work on square images
+    // face resolution is 240x240
+    camera.resolution.face();
+    camera.quality.high();
+
+    // init camera
+    while (!camera.begin().isOk())
+        Serial.println(camera.exception.toString());
+
+    // connect to WiFi
+    while (!wifi.connect().isOk())
+      Serial.println(wifi.exception.toString());
+
+    // init face detection http server
+    while (!collectionServer.begin().isOk())
+        Serial.println(collectionServer.exception.toString());
+
+    Serial.println("Camera OK");
+    Serial.println("WiFi OK");
+    Serial.println("Image Collection Server OK");
+    Serial.println(collectionServer.address());
+}
+
+
+void loop() {
+    // server runs in a separate thread, no need to do anything here
+}
 ```
 
 ### 6.4 업로드 및 데이터 캡처
