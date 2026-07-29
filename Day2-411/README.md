@@ -194,16 +194,15 @@ int __io_putchar(int ch)
    - Baud: 115200
    - LED가 0.5초 간격으로 토글되면서 시리얼로 메시지 출력 확인
 
-### 2.7 외부 인터럽트: 버튼 입력
+### 2.7 외부 인터럽트: 스위치 입력 → 시리얼 출력
 
-버튼(B1, PA0)을 누를 때 LED가 켜지도록 구현:
+버튼(B1, PA0)을 눌렀을 때 인터럽트로 감지하여 시리얼(UART)로 메시지를 전송:
 
 ```c
 /* USER CODE BEGIN 0 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    /* EXTI0(PA0) 전용. PA0만 EXTI0에 할당되어 조건문 없이 사용 가능 */
-    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+    /* PA0(B1) falling edge 감지 → 시리얼로 전송 */
     printf("Button pressed!\r\n");
 }
 /* USER CODE END 0 */
@@ -211,7 +210,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 > **참고:** `HAL_GPIO_EXTI_Callback`은 EXTI 라인 번호만 전달하므로 `GPIO_Pin == GPIO_PIN_0`은 PA0/PB0/PC0 등 **포트까지 구분하지 못합니다**. NUCLEO-F411RE는 PA0만 EXTI0에 할당되어 있어 조건문 없이 사용해도 됩니다. 여러 핀이 같은 EXTI 라인을 공유한다면 포트 레지스터(`GPIOA->IDR`)를 직접 읽어야 합니다.
 
-CubeMX에서 PA0을 `GPIO_EXTI0`으로 설정하고 **NVIC → EXTI0 global interrupt**를 Enable해야 합니다.
+CubeMX에서 PA0을 `GPIO_EXTI0` (falling edge trigger)으로 설정하고 **NVIC → EXTI0 global interrupt**를 Enable해야 합니다.
 
 ### 2.8 TIM (타이머) 설정
 
