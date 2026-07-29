@@ -179,5 +179,57 @@ Verifying written data...
 Hash of data verified.
 
 Hard resetting via RTS pin...
+```
+
 
 ```
+Predictions (DSP: 7 ms., Classification: 681 ms., Anomaly: 0 ms.): 
+Classification:
+
+  erase: 0.00000
+
+  keyring: 0.00000
+
+  ruller: 0.00000
+
+Object detection bounding boxes:
+
+  erase (0.574219) [ x: 40, y: 40, width: 8, height: 8 ]
+
+
+...
+
+
+Predictions (DSP: 7 ms., Classification: 680 ms., Anomaly: 0 ms.): 
+Classification:
+
+  erase: 0.00000
+
+  keyring: 0.00000
+
+  ruller: 0.00000
+
+Object detection bounding boxes:
+
+  keyring (0.511719) [ x: 32, y: 40, width: 8, height: 8 ]
+
+...
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
