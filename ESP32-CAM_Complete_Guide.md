@@ -731,11 +731,18 @@ cv2.destroyAllWindows()
 
 ### 6.3 Wi-Fi 설정 및 카메라 모델 변경
 
-```cpp
+
+* Collect_Images_for_EdgeImpulse.ino
+
+```aduino
 #define WIFI_SSID "YOUR_WIFI_SSID"
 #define WIFI_PASS "YOUR_WIFI_PASSWORD"
 #define HOSTNAME "esp32cam"
+```
 
+* board_config.h
+
+```c
 // 카메라 모델 설정 (36라인 근처)
 // 사용 중인 보드에 맞게 주석 처리/해제
 // #define CAMERA_MODEL_ESP_EYE
