@@ -311,23 +311,28 @@ cv2.destroyAllWindows()
 
 ## 방법 2: Node.js (2가지 버전)
 
-USB 웹캠용과 라즈베리파이 카메라용으로 분리되어 있습니다. `C:\rpi-edge-impulse-node\` 폴더 참조.
+USB 웹캠용과 라즈베리파이 카메라용으로 분리되어 있습니다. 실제 프로젝트 위치: `C:\Collect_images_for_edgeImpulse_RP\rpi-edge-impulse-node\`
+
+> ✅ **USB 버전 정상 기동 확인** (2026-07-29, Windows 11 + Node.js v22)
 
 ### 프로젝트 구조
 
 ```
 rpi-edge-impulse-node/
-├── package.json          # 공통 의존성
+├── package.json          # 공통 의존성 (express + archiver)
 ├── server-usb.js         # [USB 웹캠] 브라우저 카메라 사용
 ├── server-pi.js          # [Pi Camera] 서버 직접 카메라 제어
-└── captured_images/      # 저장 폴더 (자동 생성)
+├── captured_images/      # 저장 폴더 (자동 생성)
+└── temp/                 # Pi Camera 임시 프레임 (자동 생성)
 ```
 
 ### 공통 설치
 
 ```bash
-cd C:\rpi-edge-impulse-node
+cd C:\Collect_images_for_edgeImpulse_RP\rpi-edge-impulse-node
 npm install
+npm run usb    # USB 웹캠 서버 실행
+npm run pi     # Pi Camera 서버 실행
 ```
 
 ---
@@ -377,16 +382,19 @@ app.post('/api/capture', (req, res) => {
 });
 
 // 4. [GET /api/download] — archiver로 전체 ZIP 생성 후 스트리밍
-//    res.writeHead(200, { 'Content-Type': 'application/zip' });
-//    archive.pipe(res); → 모든 폴더의 .jpg 파일을 라벨명/파일명 구조로 압축
 app.get('/api/download', (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': 'attachment; filename="images_' + Date.now() + '.zip"'
+    });
     const archive = archiver('zip');
     archive.pipe(res);
-    // captured_images/ 아래 모든 디렉토리 탐색
-    fs.readdirSync(CAPTURE_DIR).filter(d => d.isDirectory()).forEach(d => {
-        fs.readdirSync(path.join(CAPTURE_DIR, d)).filter(f => f.endsWith('.jpg'))
-            .forEach(f => archive.file(path.join(CAPTURE_DIR, d, f), { name: d + '/' + f }));
-    });
+    fs.readdirSync(CAPTURE_DIR, { withFileTypes: true })
+        .filter(d => d.isDirectory()).forEach(d => {
+            fs.readdirSync(path.join(CAPTURE_DIR, d.name))
+                .filter(f => f.endsWith('.jpg'))
+                .forEach(f => archive.file(path.join(CAPTURE_DIR, d.name, f), { name: d.name + '/' + f }));
+        });
     archive.finalize();
 });
 
@@ -439,10 +447,12 @@ function getStillCmd(outputPath) {
 
 // 3. 실제 촬영 (child_process.exec)
 function captureStill(callback) {
-    const tmpFile = path.join(__dirname, 'temp', 'frame_${Date.now()}.jpg');
+    const tmpFile = path.join(TEMP_DIR, 'frame_' + Date.now() + '.jpg');
     exec(getStillCmd(tmpFile), { timeout: 3000 }, (err) => {
+        if (err) return callback(err);
+        if (!fs.existsSync(tmpFile)) return callback(new Error('No output'));
         const buf = fs.readFileSync(tmpFile);
-        latestFrame = buf;  // 최신 프레임 갱신 (웹 UI 표시용)
+        latestFrame = buf;
         fs.unlink(tmpFile, () => {});
         callback(null, buf);
     });
@@ -450,14 +460,18 @@ function captureStill(callback) {
 
 // 4. 연속 촬영 (Start 버튼)
 function startContinuousCapture(label) {
+    if (isCapturing) return;
+    isCapturing = true;
+    currentLabel = label;
     const dir = path.join(CAPTURE_DIR, label);
     fs.mkdirSync(dir, { recursive: true });
     captureTimer = setInterval(() => {
         captureStill((err, buf) => {
+            if (err) return;
             const n = fs.readdirSync(dir).filter(f => f.endsWith('.jpg')).length;
-            fs.writeFileSync(path.join(dir, '${label}_${n}.jpg'), buf);
+            fs.writeFileSync(path.join(dir, label + '_' + String(n).padStart(4, '0') + '.jpg'), buf);
         });
-    }, 300);  // 300ms 간격
+    }, 300);
 }
 
 // 5. 웹 UI에 최신 프레임 표시 (polling)
