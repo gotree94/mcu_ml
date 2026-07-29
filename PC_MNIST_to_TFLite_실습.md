@@ -1616,7 +1616,7 @@ python -c "import serial.tools.list_ports; print([p.device for p in serial.tools
 
 ---
 
-## 이미지 파일 확인하기
+## 부록 C:이미지 파일 확인하기
 
 * C:\Users\user\.keras\datasets\mnist.npz
 * 아래의 코드를 같은 디렉토리에 작성하여 실행하면 
