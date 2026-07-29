@@ -1623,6 +1623,7 @@ python -c "import serial.tools.list_ports; print([p.device for p in serial.tools
 C:\Users\user\Desktop\MNIST_Images 에 학습에 사용된 파일이 다 보이게 됨.
 
 ```
+# unzip.py
 import os
 import numpy as np
 from PIL import Image
