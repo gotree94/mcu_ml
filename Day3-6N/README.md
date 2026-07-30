@@ -87,21 +87,36 @@ NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 
 
    #### ① Secure Boot 설정 (System Core → SYS_S)
    - **SYS_S** 클릭 → `First Stage Boot Loader` 체크, `Application` 체크
-     - FSBL: Secure 부트로더 (보안 영역에서 실행)
-     - Application: Non-Secure 영역에서 동작할 메인 애플리케이션
+     - FSBL은 CubeMX가 자동 생성하며 클럭/메모리 초기화 후 Application으로 점프합니다.
+     - 사용자 코드는 Non-Secure 쪽 Application(`NonSecure/App/Src/main.c`)에만 작성하면 됩니다.
    - **Timebase Source**: `SysTick` 유지
+   - 확인 후 좌측 메뉴에 **Initializer** 항목이 새로 생깁니다.
 
-   #### ② USART2 활성화 (Non-Secure)
+   #### ② Initializer에서 컨텍스트 선택
+   - **Initializer** 클릭 → `Select initialized context` 드롭다운에서 **Application** 선택
+     - `First stage boot loader`: Secure 부트로더용 설정 (클럭, 메모리 등 HW 초기화)
+     - `Application`: Non-Secure 사용자 애플리케이션용 설정 ← **LED/UART 실습용**
+     - `External Memory Loader`: 외부 메모리 로더용 설정
+   > 이후 모든 주변장치 설정은 선택한 컨텍스트(Application)에 적용됩니다.
+
+   #### ③ USART2 활성화 (Application 컨텍스트)
    - **Connectivity → USART2** → `Mode: Asynchronous`
-     - 자동 할당된 TX/RX 핀 확인 (기본 TX=PD5, RX=PD6 등)
+     - 자동 할당된 TX/RX 핀 확인
      - **Parameter Settings → Baud Rate**: `115200`
-   > USART2가 비활성화 상태로 보이면 클릭하여 Asynchronous 모드로 변경하면 됩니다.
+     - 모드 선택 후 아래 **USART2 Mode and Configuration** 창에 **FSBL / Application / External** 체크박스가 나타납니다.
+       - **Application** 체크 (Non-Secure 영역에서 printf 출력에 사용)
+       - FSBL에도 디버그 출력을 원하면 FSBL도 함께 체크 (선택)
 
-   #### ③ LED 핀 확인
-   - 화면 우측의 **Pinout View**에서 사용자 LED 핀 찾기
-     - NUCLEO-N6570의 사용자 LED(LD1)는 보통 `PG1`에 연결됨
-     - 핀 위에 마우스를 올리면 툴팁으로 `LD1` 확인 가능
-     - 또는 `.ioc` 파일 생성 후 CubeMX 핀 맵에서 `LD1` 검색
+   #### ③ 사용자 LED GPIO 설정 (직접 추가 필요)
+   NUCLEO-N6570 Nucleo-144 보드의 사용자 LED는 CubeMX 기본 설정에 포함되어 있지 않으므로 직접 추가해야 합니다.
+   - 아래 핀 중 원하는 LED를 Pinout View에서 **GPIO_Output**으로 설정:
+     - **PG0** = LED3 (녹색) — `GPIO_Output` 클릭
+     - **PG8** = LED1 (파랑)
+     - **PG10** = LED2 (빨강)
+   - **주의**: 모든 사용자 LED는 **Active LOW** (핀 LOW일 때 ON, HIGH일 때 OFF)입니다.
+     - `HAL_GPIO_WritePin(..., GPIO_PIN_RESET)` → LED ON
+     - `HAL_GPIO_WritePin(..., GPIO_PIN_SET)` → LED OFF
+   - **System Core → GPIO**에서 해당 핀의 `User Label`을 `LED3` 등으로 변경하면 코드에서 `LED3_GPIO_Port`, `LED3_Pin` 매크로를 자동 생성할 수 있습니다.
 
 5. **Project Manager** 탭:
    - **Project Name**: `nucleo_n6570_led_uart`
@@ -129,9 +144,10 @@ printf("STM32N6 Nucleo-6570 Boot OK!\r\n");
 /* USER CODE BEGIN WHILE */
 while (1)
 {
-  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+  /* Active LOW: Reset(LOW) = ON, Set(HIGH) = OFF */
+  HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
   printf("LED: %s\r\n",
-         HAL_GPIO_ReadPin(LD1_GPIO_Port, LD1_Pin) ? "ON" : "OFF");
+         HAL_GPIO_ReadPin(LED3_GPIO_Port, LED3_Pin) ? "OFF" : "ON");
   HAL_Delay(500);
   /* USER CODE END WHILE */
 
