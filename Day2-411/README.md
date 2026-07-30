@@ -1114,9 +1114,11 @@ STM32F411_PPG/
 
 ```c
 /* USER CODE BEGIN Includes */
-#include "app_x_cube_ai.h"
 #include "network.h"
+#include "network_data_params.h"
 #include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN PV */
@@ -1125,73 +1127,81 @@ static AI_ALIGNED(4) float ai_output[AI_NETWORK_OUT_1_SIZE];
 static ai_handle network = AI_HANDLE_NULL;
 /* USER CODE END PV */
 
-/* USER CODE BEGIN 2 */
-  /* X-Cube-AI 초기화 */
-  ai_error err;
-  err = ai_network_create(&network, AI_NETWORK_DATA_CONFIG);
-  if (err.type != AI_ERROR_NONE) {
-      printf("Network create error: %d\r\n", err.code);
-      Error_Handler();
-  }
+/* USER CODE BEGIN PFP */
+#ifdef __GNUC__
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+#endif
+/* USER CODE END PFP */
 
-  /* 네트워크 활성화 (메모리 할당) */
-  err = ai_network_init(network, NULL);
-  if (err.type != AI_ERROR_NONE) {
-      printf("Network init error: %d\r\n", err.code);
-      Error_Handler();
-  }
-
-  printf("X-Cube-AI initialized!\r\n");
-  printf("Input size: %d, Output size: %d\r\n",
-         AI_NETWORK_IN_1_SIZE, AI_NETWORK_OUT_1_SIZE);
-/* USER CODE END 2 */
-
-/* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* ---- 1. 센서 데이터 수신 (시뮬레이션) ---- */
-    /* 실제로는 ADC/ I2C/ UART로 PPG 데이터를 수신 */
-    for (int i = 0; i < AI_NETWORK_IN_1_SIZE; i++)
-    {
-        /* 테스트용: 사인파로 PPG 모방 */
-        float t = (float)i / AI_NETWORK_IN_1_SIZE * 4 * 3.14159f;
-        ai_input[i] = (sinf(t) * sinf(t)) + 0.1f * ((float)rand() / RAND_MAX);
+  /* USER CODE BEGIN 2 */
+    /* X-Cube-AI 초기화 */
+    ai_error err;
+    err = ai_network_create(&network, AI_NETWORK_DATA_CONFIG);
+    if (err.type != AI_ERROR_NONE) {
+        printf("Network create error: %d\r\n", err.code);
+        Error_Handler();
     }
 
-    /* ---- 2. 추론 실행 ---- */
-    ai_i32 batch;
-    ai_buffer input_buff = ai_network_inputs_get(network, NULL);
-    ai_buffer output_buff = ai_network_outputs_get(network, NULL);
-
-    input_buff.data = AI_HANDLE_PTR(&ai_input);
-    output_buff.data = AI_HANDLE_PTR(&ai_output);
-
-    batch = ai_network_run(network, &input_buff, &output_buff);
-    if (batch != 1) {
-        printf("Inference error!\r\n");
+    /* 네트워크 활성화 (메모리 할당) */
+    if (!ai_network_init(network, NULL)) {
+        printf("Network init error\r\n");
+        Error_Handler();
     }
 
-    /* ---- 3. 결과 해석 ---- */
-    int predicted_class = 0;
-    float max_prob = ai_output[0];
-    for (int i = 1; i < AI_NETWORK_OUT_1_SIZE; i++) {
-        if (ai_output[i] > max_prob) {
-            max_prob = ai_output[i];
-            predicted_class = i;
+    printf("X-Cube-AI initialized!\r\n");
+    printf("Input size: %d, Output size: %d\r\n",
+           AI_NETWORK_IN_1_SIZE, AI_NETWORK_OUT_1_SIZE);
+  /* USER CODE END 2 */
+
+    /* USER CODE BEGIN WHILE */
+      while (1)
+      {
+        /* ---- 1. 센서 데이터 수신 (시뮬레이션) ---- */
+        /* 실제로는 ADC/ I2C/ UART로 PPG 데이터를 수신 */
+        for (int i = 0; i < AI_NETWORK_IN_1_SIZE; i++)
+        {
+            /* 테스트용: 사인파로 PPG 모방 */
+            float t = (float)i / AI_NETWORK_IN_1_SIZE * 4 * 3.14159f;
+            ai_input[i] = (sinf(t) * sinf(t)) + 0.1f * ((float)rand() / RAND_MAX);
         }
-    }
 
-    const char* class_names[] = {"Normal", "Tachycardia", "Bradycardia"};
-    printf("Prediction: %s (%.1f%%)\r\n",
-           class_names[predicted_class], max_prob * 100.0f);
+        /* ---- 2. 추론 실행 ---- */
+        ai_i32 batch;
+        ai_buffer *input_buff = ai_network_inputs_get(network, NULL);
+        ai_buffer *output_buff = ai_network_outputs_get(network, NULL);
 
-    /* 결과에 따라 LED 표시 */
-    if (predicted_class == 0) HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);  // OFF
-    else                     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);      // ON
+        input_buff->data = AI_HANDLE_PTR(&ai_input);
+        output_buff->data = AI_HANDLE_PTR(&ai_output);
 
-    HAL_Delay(1000);  // 1초마다 추론
-    /* USER CODE END WHILE */
-  }
+        batch = ai_network_run(network, input_buff, output_buff);
+        if (batch != 1) {
+            printf("Inference error!\r\n");
+        }
+
+        /* ---- 3. 결과 해석 ---- */
+        int predicted_class = 0;
+        float max_prob = ai_output[0];
+        for (int i = 1; i < AI_NETWORK_OUT_1_SIZE; i++) {
+            if (ai_output[i] > max_prob) {
+                max_prob = ai_output[i];
+                predicted_class = i;
+            }
+        }
+
+        const char* class_names[] = {"Normal", "Tachycardia", "Bradycardia"};
+        printf("Prediction: %s (%.1f%%)\r\n",
+               class_names[predicted_class], max_prob * 100.0f);
+
+        /* 결과에 따라 LED 표시 */
+        if (predicted_class == 0) HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);  // OFF
+        else                     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);      // ON
+
+        HAL_Delay(1000);  // 1초마다 추론
+        /* USER CODE END WHILE */
 ```
 
 ### 4.6 메모리 사용량 분석
