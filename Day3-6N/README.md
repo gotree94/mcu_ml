@@ -127,7 +127,7 @@ NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 
 
 ### 0.2 LED 깜빡임 코드 (Non-Secure Application)
 
-생성된 프로젝트에서 `NonSecure/App/Src/main.c`를 엽니다. (Secure 프로젝트가 아닌 **Non-Secure** 쪽 main.c입니다.)
+생성된 프로젝트에서 `Appli/Core/Src/main.c`를 엽니다. (Non-Secure 애플리케이션 쪽 main.c입니다. FSBL 쪽과 헷갈리지 마세요.)
 
 `main()` 함수의 `USER CODE BEGIN 2` ~ `USER CODE END 2`, `USER CODE BEGIN WHILE` ~ `USER CODE END WHILE`에 추가:
 
@@ -157,7 +157,7 @@ while (1)
 
 ### 0.3 UART `_write` 재정의 (printf 출력)
 
-STM32N6 TrustZone 프로젝트에서 `printf`가 USART2로 출력되도록 `NonSecure/App/Src/main.c`에 추가:
+STM32N6 TrustZone 프로젝트에서 `printf`가 USART2로 출력되도록 `Appli/Core/Src/main.c`에 추가:
 
 ```c
 /* USER CODE BEGIN 0 */
@@ -174,9 +174,11 @@ int _write(int file, char *ptr, int len)
 
 > `huart2` 핸들은 USART2를 Asynchronous 모드로 활성화하면 CubeMX가 자동 생성합니다. 만약 컴파일 에러가 발생하면 헤더에 extern 선언이 있는지 확인하세요.
 >
-> **빌드 에러 (`stm32n6xx_nucleo.h: No such file or directory`)**: Appli 프로젝트의 include paths에 BSP 경로가 누락된 경우입니다.
-> - CubeMX에서 **Software Packs → Select Components → Board Support → STM32N6xx_Nucleo** 활성화 후 재생성
-> - 또는 CubeIDE에서 프로젝트 우클릭 → **Properties → C/C++ Build → Settings → MCU GCC Compiler → Include paths**에 `../../Drivers/BSP/STM32N6xx_Nucleo` 추가
+> **빌드 에러 — BSP 헤더 누락 시 처리**:
+> | 오류 | 원인 | 조치 |
+> |------|------|------|
+> | `stm32n6xx_nucleo.h: No such file or directory` | BSP include 경로 없음 | Appli 프로젝트 include paths에 `../../Drivers/BSP/STM32N6xx_Nucleo` 추가 |
+> | `stm32n6xx_nucleo_conf.h: No such file or directory` | BSP 설정 헤더가 FSBL에만 있음 | Appli include paths에 `../../FSBL/Core/Inc`도 추가 |
 
 ### 0.4 빌드 및 플래싱
 
