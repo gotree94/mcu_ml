@@ -76,147 +76,66 @@ pip install tensorflow numpy matplotlib pillow opencv-python
 
 NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 정상 동작하는지 확인합니다.
 
-> **참고**: STM32N6는 Cortex-M85 기반으로 **TrustZone**을 지원합니다. 따라서 프로젝트 생성 시 **Secure(보안)** 영역과 **Non-Secure(일반)** 영역을 구분해서 설정해야 합니다.
+> **참고**: STM32N6는 TrustZone 기반으로 CubeMX 위저드로 처음부터 만드는 것이 복잡합니다. ST가 제공하는 **공식 예제**로 시작하는 것을 권장합니다.
 
-### 0.1 CubeMX로 프로젝트 생성
+### 0.1 예제 다운로드
 
-1. **STM32CubeMX 실행** → **File → New Project**
-2. **Board Selector** 탭 → 검색: `NUCLEO-N6570` → 선택 → **Start Project**
-3. **Yes** (초기화 확인 다이얼로그)
-4. **Pinout & Configuration** 탭에서 다음 설정:
+https://github.com/STMicroelectronics/STM32CubeN6 → **Code → Download ZIP** 또는 git clone:
 
-   #### ① 불필요한 기본 주변장치 해제
-   보드 템플릿에 기본 활성화된 ETH1 등이 RIF 관련 코드를 생성해 빌드 오류를 유발할 수 있습니다.
-   - **Connectivity → ETH1** → Mode를 **Disabled**로 변경 (LED+UART 테스트에는 불필요)
-   - 같은 방식으로 사용하지 않는 I2C, LPUART 등도 필요 시 Disabled
-
-   #### ① Secure Boot 설정 (System Core → SYS_S)
-   - **SYS_S** 클릭 → `First Stage Boot Loader` 체크, `Application` 체크
-     - FSBL은 CubeMX가 자동 생성하며 클럭/메모리 초기화 후 Application으로 점프합니다.
-     - 사용자 코드는 Non-Secure 쪽 Application(`NonSecure/App/Src/main.c`)에만 작성하면 됩니다.
-   - **Timebase Source**: `SysTick` 유지
-   - 확인 후 좌측 메뉴에 **Initializer** 항목이 새로 생깁니다.
-
-   #### ② Initializer에서 컨텍스트 선택
-   - **Initializer** 클릭 → `Select initialized context` 드롭다운에서 **Application** 선택
-     - `First stage boot loader`: Secure 부트로더용 설정 (클럭, 메모리 등 HW 초기화)
-     - `Application`: Non-Secure 사용자 애플리케이션용 설정 ← **LED/UART 실습용**
-     - `External Memory Loader`: 외부 메모리 로더용 설정
-   > 이후 모든 주변장치 설정은 선택한 컨텍스트(Application)에 적용됩니다.
-
-   #### ③ Clock Configuration 확인
-   - **Clock Configuration** 탭으로 이동
-   - USART2 추가 시 빨간색 오류가 뜨거나 `HCLK`가 800MHz가 아닐 수 있음
-   - **Solve** 버튼 클릭 → 자동 조정 (또는 수동으로 PLL 설정을 HSE 24MHz → PLL → 800MHz로 설정)
-   - 확인 후 다시 Pinout & Configuration 탭으로 이동
-
-   #### ④ USART2 활성화 (Application 컨텍스트)
-   - **Connectivity → USART2** → `Mode: Asynchronous`
-     - 자동 할당된 TX/RX 핀 확인
-     - **Parameter Settings → Baud Rate**: `115200`
-     - 모드 선택 후 아래 **USART2 Mode and Configuration** 창에 **FSBL / Application / External** 체크박스가 나타납니다.
-       - **Application** 체크 (Non-Secure 영역에서 printf 출력에 사용)
-       - FSBL에도 디버그 출력을 원하면 FSBL도 함께 체크 (선택)
-
-   #### ③ 사용자 LED — BSP에서 자동 관리
-   NUCLEO-N6570은 CubeMX의 BSP(Board Support Package)가 **LED1(PG8), LED2(PG10), LED3(PG0)** 을 이미 관리하고 있습니다.
-   핀 뷰에서 해당 핀이 회색으로 표시되고 `BSP under control` 메시지가 보이면 정상입니다. 별도 GPIO 설정 없이 BSP API로 제어할 수 있습니다.
-
-5. **Project Manager** 탭:
-   - **Project Name**: `nucleo_n6570_led_uart`
-   - **Project Location**: 적절한 폴더 선택
-   - **Toolchain / IDE**: `STM32CubeIDE`
-   - TrustZone 프로젝트는 Secure / Non-Secure 폴더가 분리되어 생성됩니다.
-
-6. **Generate Code** 버튼 클릭 → 프로젝트 생성
-
-### 0.2 LED 깜빡임 코드 (Non-Secure Application)
-
-생성된 프로젝트에서 `Appli/Core/Src/main.c`를 엽니다. (Non-Secure 애플리케이션 쪽 main.c입니다. FSBL 쪽과 헷갈리지 마세요.)
-
-`main()` 함수의 `USER CODE BEGIN 2` ~ `USER CODE END 2`, `USER CODE BEGIN WHILE` ~ `USER CODE END WHILE`에 추가:
-
-```c
-/* USER CODE BEGIN 0 */
-#include <stdio.h>
-#include "stm32n6xx_nucleo.h"    /* BSP 헤더 (LED, COM 등 포함) */
-/* USER CODE END 0 */
-
-/* USER CODE BEGIN 2 */
-BSP_LED_Init(LED3);                    /* LED3(PG0, 녹색) 초기화 */
-printf("STM32N6 Nucleo-6570 Boot OK!\r\n");
-/* USER CODE END 2 */
-
-/* USER CODE BEGIN WHILE */
-while (1)
-{
-  BSP_LED_Toggle(LED3);
-  printf("LED Toggle\r\n");
-  HAL_Delay(500);
-  /* USER CODE END WHILE */
-
-  /* USER CODE BEGIN 3 */
-}
-/* USER CODE END 3 */
+```bash
+git clone https://github.com/STMicroelectronics/STM32CubeN6.git
 ```
 
-### 0.3 UART `_write` 재정의 (printf 출력)
-
-STM32N6 TrustZone 프로젝트에서 `printf`가 USART2로 출력되도록 `Appli/Core/Src/main.c`에 추가:
-
-```c
-/* USER CODE BEGIN 0 */
-#include <stdio.h>
-
-/* printf → USART2 (ST-Link VCP) */
-int _write(int file, char *ptr, int len)
-{
-    HAL_UART_Transmit(&huart2, (uint8_t *)ptr, len, HAL_MAX_DELAY);
-    return len;
-}
-/* USER CODE END 0 */
+예제 위치:
+```
+STM32CubeN6/Projects/NUCLEO-N657X0-Q/Examples/
+├── GPIO/GPIO_IOToggle/        ← LED 깜빡임
+├── UART/UART_Printf/           ← UART printf 출력
+├── TIM/                        ← 타이머
+├── SPI/                        ← SPI 통신
+├── I2C/                        ← I2C 통신
+└── ...
 ```
 
-> `huart2` 핸들은 USART2를 Asynchronous 모드로 활성화하면 CubeMX가 자동 생성합니다. 만약 컴파일 에러가 발생하면 헤더에 extern 선언이 있는지 확인하세요.
->
-> **빌드 에러 — BSP 헤더 누락 시 처리**:
-> | 오류 | 원인 | 조치 |
-> |------|------|------|
-> | `stm32n6xx_nucleo.h: No such file or directory` | BSP include 경로 없음 | Appli 프로젝트 include paths에 `../../Drivers/BSP/STM32N6xx_Nucleo` 추가 |
-> | `stm32n6xx_nucleo_conf.h: No such file or directory` | BSP 설정 헤더가 FSBL에만 있음 | Appli include paths에 `../../FSBL/Core/Inc`도 추가 |
+### 0.2 GPIO_IOToggle (LED) 실행
 
-### 0.4 빌드 및 플래싱
+1. **CubeIDE** 실행 → **File → Open Projects from File System...**
+2. `STM32CubeN6/Projects/NUCLEO-N657X0-Q/Examples/GPIO/GPIO_IOToggle/STM32CubeIDE/` 선택
+3. **Project → Build All (Ctrl+B)** → 에러 없으면 성공
+4. 보드 연결 후 **Run → Debug (F11)** — 플래싱
+   - STM32N6는 내부 Flash가 없으므로 외부 Quad-SPI Flash에 기록됩니다.
+   - 점퍼 **BOOT1을 2-3**으로 연결하면 외부 Flash를 거치지 않고 칩에 직접 쓸 수 있습니다. (필요 시)
+5. 보드의 사용자 LED(LED1=PG8 파랑/LED2=PG10 빨강/LED3=PG0 녹색)가 토글되는지 확인
 
-TrustZone 프로젝트는 **Secure → Non-Secure** 순서로 빌드됩니다.
+### 0.3 UART_Printf 실행
 
-1. CubeMX가 생성한 프로젝트를 **STM32CubeIDE**로 열기
-   - 또는 CubeMX **Generate Code** 시 **Open Project** 클릭
-2. **Project → Build All (Ctrl+B)**
-   - Secure 프로젝트 → Non-Secure 프로젝트 → 최종 바이너리 병합
-3. **Run → Debug (F11)** 또는 **Run (Ctrl+F11)**
-   - ST-Link 자동 인식 → FSBL + Application이 보드에 플래싱
-4. 시리얼 모니터 (115200 baud, ST-Link VCP 포트) 확인:
+1. **File → Open Projects from File System...**
+2. `STM32CubeN6/Projects/NUCLEO-N657X0-Q/Examples/UART/UART_Printf/STM32CubeIDE/` 선택
+3. `UART_Printf.ioc` 열기 → **Connectivity → LPUART1** → **Parameter Settings**
+   - **Parity**가 `ODD`로 되어 있으면 `NONE`으로 변경
+   - **Generate Code** → 재생성
+4. **Build → Run**
+5. 시리얼 모니터 (115200 baud, ST-Link VCP 포트) 연결:
 
 ```
-STM32N6 Nucleo-6570 Boot OK!
-LED: ON
-LED: OFF
-LED: ON
-LED: OFF
+UART Printf Example
+System Clock: 80000000 Hz
+Hello World! 0
+Hello World! 1
+Hello World! 2
 ...
 ```
 
-> **500ms 간격으로 사용자 LED가 깜빡이고 시리얼로 상태가 출력되면 보드와 개발 환경이 정상입니다.**
-
-### 0.5 문제 해결
+### 0.4 문제 해결
 
 | 증상 | 원인 | 해결 |
 |------|------|------|
 | ST-Link 인식 안 됨 | 드라이버 미설치 | [ST-Link 드라이버](https://www.st.com/en/development-tools/stsw-link009.html) 설치 |
 | `No ST-Link detected` | USB 케이블이 데이터 전용 아님 | 데이터 케이블 사용, 다른 USB 포트 시도 |
 | printf 출력 안 됨 | VCP 포트 잘못 선택 | 장치 관리자 COM 포트 번호 확인 |
-| 빌드 에러 (printf) | `_write` 미구현 | 위 0.3절 코드 추가 |
-| Secure/Non-Secure 링크 에러 | FSBL 설정 누락 | SYS_S에서 FSBL + Application 모두 체크 확인 |
+| UART 출력 깨짐 | Parity mismatch | Parity를 ODD→NONE으로 변경 |
+| 플래싱 실패 | 외부 Flash 문제 | BOOT1 점퍼 2-3으로 직접 칩 프로그래밍 시도 |
+| 빌드 에러 (RIF 관련) | ETH1 등 불필요 주변장치 활성화 | 사용하지 않는 주변장치는 CubeMX에서 Disabled 후 재생성 |
 
 ---
 
