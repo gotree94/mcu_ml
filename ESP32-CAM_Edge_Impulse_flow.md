@@ -1,5 +1,11 @@
 # ESP32-CAM Edge Impulse 추론 코드 수정
 
+## Arduino IDE
+
+* 스케치 → 라이브러리 포함하기 → ZIP 라이브러리 추가
+* 다운로드한 ZIP 선택
+
+
 ## 문제
 
 Edge Impulse 분류(Classification) 모델(`stm32_case1`)을 ESP32-CAM에서 실행했을 때, 객체 탐지(Object Detection) 전용 출력만 표시되어 분류 결과가 나타나지 않음.
