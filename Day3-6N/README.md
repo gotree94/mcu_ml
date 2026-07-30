@@ -99,7 +99,13 @@ NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 
      - `External Memory Loader`: 외부 메모리 로더용 설정
    > 이후 모든 주변장치 설정은 선택한 컨텍스트(Application)에 적용됩니다.
 
-   #### ③ USART2 활성화 (Application 컨텍스트)
+   #### ③ Clock Configuration 확인
+   - **Clock Configuration** 탭으로 이동
+   - USART2 추가 시 빨간색 오류가 뜨거나 `HCLK`가 800MHz가 아닐 수 있음
+   - **Solve** 버튼 클릭 → 자동 조정 (또는 수동으로 PLL 설정을 HSE 24MHz → PLL → 800MHz로 설정)
+   - 확인 후 다시 Pinout & Configuration 탭으로 이동
+
+   #### ④ USART2 활성화 (Application 컨텍스트)
    - **Connectivity → USART2** → `Mode: Asynchronous`
      - 자동 할당된 TX/RX 핀 확인
      - **Parameter Settings → Baud Rate**: `115200`
@@ -128,7 +134,7 @@ NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 
 ```c
 /* USER CODE BEGIN 0 */
 #include <stdio.h>
-#include "led.h"    /* BSP LED 드라이버 (자동 생성) */
+#include "stm32n6xx_nucleo.h"    /* BSP 헤더 (LED, COM 등 포함) */
 /* USER CODE END 0 */
 
 /* USER CODE BEGIN 2 */
