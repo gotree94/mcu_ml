@@ -173,6 +173,10 @@ int _write(int file, char *ptr, int len)
 ```
 
 > `huart2` 핸들은 USART2를 Asynchronous 모드로 활성화하면 CubeMX가 자동 생성합니다. 만약 컴파일 에러가 발생하면 헤더에 extern 선언이 있는지 확인하세요.
+>
+> **빌드 에러 (`stm32n6xx_nucleo.h: No such file or directory`)**: Appli 프로젝트의 include paths에 BSP 경로가 누락된 경우입니다.
+> - CubeMX에서 **Software Packs → Select Components → Board Support → STM32N6xx_Nucleo** 활성화 후 재생성
+> - 또는 CubeIDE에서 프로젝트 우클릭 → **Properties → C/C++ Build → Settings → MCU GCC Compiler → Include paths**에 `../../Drivers/BSP/STM32N6xx_Nucleo` 추가
 
 ### 0.4 빌드 및 플래싱
 
