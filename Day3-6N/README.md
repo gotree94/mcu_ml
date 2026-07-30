@@ -85,6 +85,11 @@ NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 
 3. **Yes** (초기화 확인 다이얼로그)
 4. **Pinout & Configuration** 탭에서 다음 설정:
 
+   #### ① 불필요한 기본 주변장치 해제
+   보드 템플릿에 기본 활성화된 ETH1 등이 RIF 관련 코드를 생성해 빌드 오류를 유발할 수 있습니다.
+   - **Connectivity → ETH1** → Mode를 **Disabled**로 변경 (LED+UART 테스트에는 불필요)
+   - 같은 방식으로 사용하지 않는 I2C, LPUART 등도 필요 시 Disabled
+
    #### ① Secure Boot 설정 (System Core → SYS_S)
    - **SYS_S** 클릭 → `First Stage Boot Loader` 체크, `Application` 체크
      - FSBL은 CubeMX가 자동 생성하며 클럭/메모리 초기화 후 Application으로 점프합니다.
