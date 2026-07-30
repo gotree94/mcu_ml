@@ -76,58 +76,78 @@ pip install tensorflow numpy matplotlib pillow opencv-python
 
 NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 정상 동작하는지 확인합니다.
 
+> **참고**: STM32N6는 Cortex-M85 기반으로 **TrustZone**을 지원합니다. 따라서 프로젝트 생성 시 **Secure(보안)** 영역과 **Non-Secure(일반)** 영역을 구분해서 설정해야 합니다.
+
 ### 0.1 CubeMX로 프로젝트 생성
 
 1. **STM32CubeMX 실행** → **File → New Project**
 2. **Board Selector** 탭 → 검색: `NUCLEO-N6570` → 선택 → **Start Project**
 3. **Yes** (초기화 확인 다이얼로그)
 4. **Pinout & Configuration** 탭에서 다음 설정:
-   - **System Core → SYS**: `Debug: Serial Wire`
-   - **Connectivity → USART2**: `Mode: Asynchronous` (ST-Link VCP 기본 연결)
-     - USART2 TX=D5, RX=D4 자동 할당 확인
-     - **Parameter Settings**: `Baud Rate: 115200`
-   - **System Core → GPIO**: LD1 (녹색 LED, PG1) 핀 확인
-     - NUCLEO-N6570는 `PG1`에 연결된 사용자 LED 1개 있음
+
+   #### ① Secure Boot 설정 (System Core → SYS_S)
+   - **SYS_S** 클릭 → `First Stage Boot Loader` 체크, `Application` 체크
+     - FSBL: Secure 부트로더 (보안 영역에서 실행)
+     - Application: Non-Secure 영역에서 동작할 메인 애플리케이션
+   - **Timebase Source**: `SysTick` 유지
+
+   #### ② USART2 활성화 (Non-Secure)
+   - **Connectivity → USART2** → `Mode: Asynchronous`
+     - 자동 할당된 TX/RX 핀 확인 (기본 TX=PD5, RX=PD6 등)
+     - **Parameter Settings → Baud Rate**: `115200`
+   > USART2가 비활성화 상태로 보이면 클릭하여 Asynchronous 모드로 변경하면 됩니다.
+
+   #### ③ LED 핀 확인
+   - 화면 우측의 **Pinout View**에서 사용자 LED 핀 찾기
+     - NUCLEO-N6570의 사용자 LED(LD1)는 보통 `PG1`에 연결됨
+     - 핀 위에 마우스를 올리면 툴팁으로 `LD1` 확인 가능
+     - 또는 `.ioc` 파일 생성 후 CubeMX 핀 맵에서 `LD1` 검색
 
 5. **Project Manager** 탭:
    - **Project Name**: `nucleo_n6570_led_uart`
    - **Project Location**: 적절한 폴더 선택
    - **Toolchain / IDE**: `STM32CubeIDE`
-   - **Generate Under the root**: 체크
+   - TrustZone 프로젝트는 Secure / Non-Secure 폴더가 분리되어 생성됩니다.
 
 6. **Generate Code** 버튼 클릭 → 프로젝트 생성
 
-### 0.2 LED 깜빡임 코드
+### 0.2 LED 깜빡임 코드 (Non-Secure Application)
 
-`Core/Src/main.c`의 `main()` 함수 안 `USER CODE BEGIN 2` ~ `USER CODE END 2` 사이에 추가:
+생성된 프로젝트에서 `NonSecure/App/Src/main.c`를 엽니다. (Secure 프로젝트가 아닌 **Non-Secure** 쪽 main.c입니다.)
 
-```c
-  /* USER CODE BEGIN 2 */
-  printf("STM32N6 Nucleo-6570 Boot OK!\r\n");
-  /* USER CODE END 2 */
-
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-    printf("LED: %s\r\n",
-           HAL_GPIO_ReadPin(LD1_GPIO_Port, LD1_Pin) ? "ON" : "OFF");
-    HAL_Delay(500);
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
-```
-
-> **참고**: `printf` 사용을 위해 `Core/Src/main.c` 상단에 `#include <stdio.h>` 추가하고, CubeMX가 생성한 `Core/Src/syscalls.c` 또는 `Core/Src/sysmem.c`에서 `_write` 구현이 STLink UART로 출력되도록 설정되어 있는지 확인하세요. (기본 생성 템플릿에 포함됨)
-
-### 0.3 UART `_write` 재정의 (printf 출력)
-
-`printf`가 USART2로 출력되도록 `Core/Src/main.c`에 추가:
+`main()` 함수의 `USER CODE BEGIN 2` ~ `USER CODE END 2`, `USER CODE BEGIN WHILE` ~ `USER CODE END WHILE`에 추가:
 
 ```c
 /* USER CODE BEGIN 0 */
+#include <stdio.h>
+/* USER CODE END 0 */
+
+/* USER CODE BEGIN 2 */
+printf("STM32N6 Nucleo-6570 Boot OK!\r\n");
+/* USER CODE END 2 */
+
+/* USER CODE BEGIN WHILE */
+while (1)
+{
+  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+  printf("LED: %s\r\n",
+         HAL_GPIO_ReadPin(LD1_GPIO_Port, LD1_Pin) ? "ON" : "OFF");
+  HAL_Delay(500);
+  /* USER CODE END WHILE */
+
+  /* USER CODE BEGIN 3 */
+}
+/* USER CODE END 3 */
+```
+
+### 0.3 UART `_write` 재정의 (printf 출력)
+
+STM32N6 TrustZone 프로젝트에서 `printf`가 USART2로 출력되도록 `NonSecure/App/Src/main.c`에 추가:
+
+```c
+/* USER CODE BEGIN 0 */
+#include <stdio.h>
+
 /* printf → USART2 (ST-Link VCP) */
 int _write(int file, char *ptr, int len)
 {
@@ -137,14 +157,19 @@ int _write(int file, char *ptr, int len)
 /* USER CODE END 0 */
 ```
 
+> `huart2` 핸들은 USART2를 Asynchronous 모드로 활성화하면 CubeMX가 자동 생성합니다. 만약 컴파일 에러가 발생하면 헤더에 extern 선언이 있는지 확인하세요.
+
 ### 0.4 빌드 및 플래싱
 
-1. CubeMX가 생성한 `.ioc` 파일을 **STM32CubeIDE**로 열기
+TrustZone 프로젝트는 **Secure → Non-Secure** 순서로 빌드됩니다.
+
+1. CubeMX가 생성한 프로젝트를 **STM32CubeIDE**로 열기
    - 또는 CubeMX **Generate Code** 시 **Open Project** 클릭
 2. **Project → Build All (Ctrl+B)**
+   - Secure 프로젝트 → Non-Secure 프로젝트 → 최종 바이너리 병합
 3. **Run → Debug (F11)** 또는 **Run (Ctrl+F11)**
-   - ST-Link 자동 인식 → 보드에 플래싱
-4. 시리얼 모니터 (115200 baud) 확인:
+   - ST-Link 자동 인식 → FSBL + Application이 보드에 플래싱
+4. 시리얼 모니터 (115200 baud, ST-Link VCP 포트) 확인:
 
 ```
 STM32N6 Nucleo-6570 Boot OK!
@@ -155,7 +180,7 @@ LED: OFF
 ...
 ```
 
-> **500ms 간격으로 녹색 LED가 깜빡이고 시리얼로 상태가 출력되면 보드와 개발 환경이 정상입니다.**
+> **500ms 간격으로 사용자 LED가 깜빡이고 시리얼로 상태가 출력되면 보드와 개발 환경이 정상입니다.**
 
 ### 0.5 문제 해결
 
@@ -164,7 +189,8 @@ LED: OFF
 | ST-Link 인식 안 됨 | 드라이버 미설치 | [ST-Link 드라이버](https://www.st.com/en/development-tools/stsw-link009.html) 설치 |
 | `No ST-Link detected` | USB 케이블이 데이터 전용 아님 | 데이터 케이블 사용, 다른 USB 포트 시도 |
 | printf 출력 안 됨 | VCP 포트 잘못 선택 | 장치 관리자 COM 포트 번호 확인 |
-| 빌드 에러 (printf) | `_write` 미구현 | 위 0.3절 코드 추가 또는 `syscalls.c` 확인 |
+| 빌드 에러 (printf) | `_write` 미구현 | 위 0.3절 코드 추가 |
+| Secure/Non-Secure 링크 에러 | FSBL 설정 누락 | SYS_S에서 FSBL + Application 모두 체크 확인 |
 
 ---
 
