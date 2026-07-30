@@ -407,6 +407,118 @@ static int ei_camera_get_data(size_t offset, size_t length, float *out_ptr)
 
 ```
 
+---
+
+```
+                        ┌───────────────────────────┐
+                        │      센서 데이터 수집      │
+                        │ (IMU, Microphone, Camera) │
+                        └─────────────┬─────────────┘
+                                      │
+                                      ▼
+                        ┌───────────────────────────┐
+                        │      Data Acquisition      │
+                        │   데이터 업로드 및 라벨링   │
+                        └─────────────┬─────────────┘
+                                      │
+                                      ▼
+                        ┌───────────────────────────┐
+                        │      Create Impulse       │
+                        │                           │
+                        │ ① Input Size 설정          │
+                        │ ② DSP Block 선택           │
+                        │ ③ Learning Block 선택      │
+                        └─────────────┬─────────────┘
+                                      │
+                                      ▼
+                 ┌──────────────────────────────────────────┐
+                 │              DSP Processing              │
+                 │                                          │
+                 │ Filtering / MFCC / Spectrogram / FFT     │
+                 │ Feature Extraction                       │
+                 └─────────────┬────────────────────────────┘
+                               │
+                               ▼
+                 ┌──────────────────────────────────────────┐
+                 │           Machine Learning               │
+                 │                                          │
+                 │ Neural Network Training                  │
+                 │ Model Optimization                       │
+                 └─────────────┬────────────────────────────┘
+                               │
+                               ▼
+                 ┌──────────────────────────────────────────┐
+                 │             Model Testing                │
+                 │                                          │
+                 │ Accuracy                                │
+                 │ Confusion Matrix                        │
+                 │ Precision / Recall                      │
+                 └─────────────┬────────────────────────────┘
+                               │
+                               ▼
+                 ┌──────────────────────────────────────────┐
+                 │                Deploy                    │
+                 │                                          │
+                 │ Arduino Library (.zip)                  │
+                 │ C++ Library                             │
+                 │ TensorFlow Lite                         │
+                 │ CMSIS                                   │
+                 └─────────────┬────────────────────────────┘
+                               │
+                               ▼
+               ┌────────────────────────────────────────────┐
+               │              Arduino IDE                   │
+               │                                            │
+               │ ZIP Library 설치                           │
+               │ 센서 초기화                                │
+               │ 데이터 수집                               │
+               │ run_classifier()                          │
+               │ 결과 확인                                 │
+               └─────────────┬──────────────────────────────┘
+                             │
+                             ▼
+              ┌─────────────────────────────────────────────┐
+              │            Application                      │
+              │                                             │
+              │ LED 제어                                    │
+              │ Relay 제어                                  │
+              │ Motor 제어                                  │
+              │ LCD 표시                                    │
+              │ BLE / Wi-Fi / MQTT 전송                     │
+              └─────────────────────────────────────────────┘
+```
+
+```
+Sensor
+   │
+   ▼
+Data Acquisition
+   │
+   ▼
+Create Impulse
+   │
+   ├── DSP (특징 추출)
+   │
+   └── Learning Block (학습)
+   │
+   ▼
+Model Test
+   │
+   ▼
+Deploy
+   │
+   ▼
+Arduino Library 생성
+   │
+   ▼
+Arduino에서 run_classifier()
+   │
+   ▼
+AI 추론 결과
+   │
+   ▼
+LED / Relay / Motor / Display / IoT
+```
 
 ---
 
