@@ -107,16 +107,9 @@ NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 
        - **Application** 체크 (Non-Secure 영역에서 printf 출력에 사용)
        - FSBL에도 디버그 출력을 원하면 FSBL도 함께 체크 (선택)
 
-   #### ③ 사용자 LED GPIO 설정 (직접 추가 필요)
-   NUCLEO-N6570 Nucleo-144 보드의 사용자 LED는 CubeMX 기본 설정에 포함되어 있지 않으므로 직접 추가해야 합니다.
-   - 아래 핀 중 원하는 LED를 Pinout View에서 **GPIO_Output**으로 설정:
-     - **PG0** = LED3 (녹색) — `GPIO_Output` 클릭
-     - **PG8** = LED1 (파랑)
-     - **PG10** = LED2 (빨강)
-   - **주의**: 모든 사용자 LED는 **Active LOW** (핀 LOW일 때 ON, HIGH일 때 OFF)입니다.
-     - `HAL_GPIO_WritePin(..., GPIO_PIN_RESET)` → LED ON
-     - `HAL_GPIO_WritePin(..., GPIO_PIN_SET)` → LED OFF
-   - **System Core → GPIO**에서 해당 핀의 `User Label`을 `LED3` 등으로 변경하면 코드에서 `LED3_GPIO_Port`, `LED3_Pin` 매크로를 자동 생성할 수 있습니다.
+   #### ③ 사용자 LED — BSP에서 자동 관리
+   NUCLEO-N6570은 CubeMX의 BSP(Board Support Package)가 **LED1(PG8), LED2(PG10), LED3(PG0)** 을 이미 관리하고 있습니다.
+   핀 뷰에서 해당 핀이 회색으로 표시되고 `BSP under control` 메시지가 보이면 정상입니다. 별도 GPIO 설정 없이 BSP API로 제어할 수 있습니다.
 
 5. **Project Manager** 탭:
    - **Project Name**: `nucleo_n6570_led_uart`
@@ -135,19 +128,19 @@ NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 
 ```c
 /* USER CODE BEGIN 0 */
 #include <stdio.h>
+#include "led.h"    /* BSP LED 드라이버 (자동 생성) */
 /* USER CODE END 0 */
 
 /* USER CODE BEGIN 2 */
+BSP_LED_Init(LED3);                    /* LED3(PG0, 녹색) 초기화 */
 printf("STM32N6 Nucleo-6570 Boot OK!\r\n");
 /* USER CODE END 2 */
 
 /* USER CODE BEGIN WHILE */
 while (1)
 {
-  /* Active LOW: Reset(LOW) = ON, Set(HIGH) = OFF */
-  HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
-  printf("LED: %s\r\n",
-         HAL_GPIO_ReadPin(LED3_GPIO_Port, LED3_Pin) ? "OFF" : "ON");
+  BSP_LED_Toggle(LED3);
+  printf("LED Toggle\r\n");
   HAL_Delay(500);
   /* USER CODE END WHILE */
 
