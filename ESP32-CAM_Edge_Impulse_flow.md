@@ -2,6 +2,13 @@
 
 ## Arduino IDE
 
+* Add this library through the Arduino IDE via:
+  - Sketch > Include Library > Add .ZIP Library...
+
+* Examples can then be found under:
+  - File > Examples > stm32_case1_inferencing
+
+
 * 스케치 → 라이브러리 포함하기 → ZIP 라이브러리 추가
 * 다운로드한 ZIP 선택
 
