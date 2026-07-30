@@ -53,8 +53,8 @@
    ```
 
    ```bash
-(base) C:\ST\STEdgeAI>C:\ST\STEdgeAI\4.0\Utilities\windows\stedgeai --version
-ST Edge AI Core v4.0.1-20581 7ed50de05
+   (base) C:\ST\STEdgeAI>C:\ST\STEdgeAI\4.0\Utilities\windows\stedgeai --version
+   ST Edge AI Core v4.0.1-20581 7ed50de05
    ISPU 2.0.1-RC2
    MLC 1.2.4-RC2
    StellarAI 4.0.1-RC2
