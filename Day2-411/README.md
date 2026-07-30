@@ -1232,7 +1232,7 @@ int __io_putchar(int ch)
 > **결론**: STM32F411의 리소스에 여유 있음 (Flash 6%, RAM 6% 사용)
 
 
-```
+```c
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -1626,7 +1626,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 
 ```
 
-```
+```python
 """
 PPG Signal Sender GUI - STM32F411 X-CUBE-AI
 
