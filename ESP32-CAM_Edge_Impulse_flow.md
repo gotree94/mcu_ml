@@ -13,7 +13,7 @@
 * 다운로드한 ZIP 선택
 
 ---
-
+다운로드 파일 이름 : ei-stm32_case1-arduino-1.0.2-impulse-#1.zip
 * 주의사항 : #include <stm32_case1_inferencing.h> 를 본인 헤더파일로 수정할것.
 
 
