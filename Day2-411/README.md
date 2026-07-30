@@ -1115,7 +1115,7 @@ STM32F411_PPG/
 ```c
 /* USER CODE BEGIN Includes */
 #include "network.h"
-#include "network_data_params.h"
+#include "network_data.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -1125,6 +1125,7 @@ STM32F411_PPG/
 static AI_ALIGNED(4) float ai_input[AI_NETWORK_IN_1_SIZE];
 static AI_ALIGNED(4) float ai_output[AI_NETWORK_OUT_1_SIZE];
 static ai_handle network = AI_HANDLE_NULL;
+static AI_ALIGNED(8) ai_u8 activations_pool[AI_NETWORK_DATA_ACTIVATIONS_SIZE];
 /* USER CODE END PV */
 
 /* USER CODE BEGIN PFP */
@@ -1146,9 +1147,21 @@ int __io_putchar(int ch)
         Error_Handler();
     }
 
-    /* 네트워크 활성화 (메모리 할당) */
-    if (!ai_network_init(network, NULL)) {
-        printf("Network init error\r\n");
+    /* 네트워크 파라미터 얻기 (활성화/가중치 버퍼 맵) */
+    ai_network_params params;
+    if (!ai_network_data_params_get(&params)) {
+        printf("Failed to get network params\r\n");
+        Error_Handler();
+    }
+
+    /* 활성화 버퍼 주소 설정 (runtime이 NULL data ptr을 허용하지 않음) */
+    AI_BUFFER_ARRAY_ITEM_SET_ADDRESS(&params.map_activations, 0,
+                                     AI_HANDLE_PTR(&activations_pool));
+
+    /* 네트워크 활성화 (메모리 할당 및 가중치 로드) */
+    if (!ai_network_init(network, &params)) {
+        ai_error err = ai_network_get_error(network);
+        printf("Network init error: type=%d code=%d\r\n", err.type, err.code);
         Error_Handler();
     }
 
