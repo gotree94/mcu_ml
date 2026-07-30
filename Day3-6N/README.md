@@ -40,12 +40,16 @@
 1. https://www.st.com/en/development-tools/stedgeai-core.html  방문
 2. **Get Software** → 로그인 후 다운로드
 3. 설치 프로그램 실행:
-   - Windows: `ST Edge AI Core 4.0.0.exe`
+   - Windows: `ST Edge AI Core 4.0.0.exe` (기본 설치 경로: `C:\ST\STEdgeAI`)
    - Linux: `st-edge-ai-core-4.0.0.run`
-4. 설치 확인:
+4. **PATH 등록 (Windows 필수)**:
+   `stedgeai` CLI가 기본적으로 PATH에 등록되지 않습니다. 아래 중 한 가지 방법으로 등록하세요.
+   - **임시** (현재 터미널): `$env:Path += ";C:\ST\STEdgeAI\4.0\Utilities\windows"`
+   - **영구**: 시스템 환경 변수 `Path`에 `C:\ST\STEdgeAI\4.0\Utilities\windows` 추가
+5. 설치 확인:
    ```bash
    stedgeai --version
-   # ST Edge AI Core v4.0.0 (build 2026-03-15)
+   # ST Edge AI Core v4.0.1 (build 2026-07-31)
    ```
 
 ### Python 패키지 설치
