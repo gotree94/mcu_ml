@@ -31,6 +31,7 @@
 - [ ] STM32CubeMX 6.18.0+ - https://www.st.com/en/development-tools/stm32cubemx.html
 - [ ] Python 3.8+ (TensorFlow 2.x)
 - [ ] PC (Windows/Linux/macOS)
+- [ ] Git Example : https://github.com/STMicroelectronics/STM32CubeN6/tree/main
 
 > **참고**: STM32CubeIDE v2.0.0부터 CubeMX가 분리되었습니다. 두 툴을 각각 설치해야 합니다.
 
