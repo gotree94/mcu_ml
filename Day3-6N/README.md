@@ -52,29 +52,119 @@
    # ST Edge AI Core v4.0.1 (build 2026-07-31)
    ```
 
-   ```bash
-   (base) C:\ST\STEdgeAI>C:\ST\STEdgeAI\4.0\Utilities\windows\stedgeai --version
-   ST Edge AI Core v4.0.1-20581 7ed50de05
-   ISPU 2.0.1-RC2
-   MLC 1.2.4-RC2
-   StellarAI 4.0.1-RC2
-   STM32CubeAI 12.0.1-RC2
-   ```
-
 ### Python 패키지 설치
 
 ```bash
 pip install tensorflow numpy matplotlib pillow opencv-python
 ```
 
-### 보드 연결 확인
+### 보드 연결 확인 (프로젝트 생성 전)
 
 1. USB-C 케이블로 NUCLEO-N6570을 PC에 연결
 2. 장치 관리자 확인:
-   - `STM32 STLink Virtual COM Port` (예: COM5)
-   - `STM32N6570` 디버그 포트
+   - `STM32 STLink Virtual COM Port` (예: COM5) — 시리얼 통신 포트
+   - `STM32 STLink` (또는 `ST-Link Debug`) — 디버그 인터페이스
+   > 참고: `STM32N6570`이라는 이름은 나타나지 않습니다. ST-Link 인터페이스가 정상 인식되면 됩니다.
 3. 녹색 전원 LED 점등 확인
-4. CubeIDE 실행 → 보드 인식 확인
+4. (**선택**) CubeIDE 실행 → **File → New → STM32 Project** → **Board Selector**에서 `NUCLEO-N6570` 검색 시 보드 템플릿이 목록에 나타나는지 확인
+   - 이 단계는 보드 연결 없이도 가능하며, 단순히 CubeIDE에 보드 지원이 설치되었는지 확인하는 것입니다.
+   - 실제 디버깅 연결 확인은 3.4절의 프로젝트 생성 후 **Run (F11)** 시 ST-Link가 인식되는지로 대체합니다.
+
+---
+
+## 0. 첫 번째 프로젝트: LED + UART (보드 테스트)
+
+NPU 실습 전에 STM32CubeIDE로 기본 프로젝트를 생성하고 보드가 정상 동작하는지 확인합니다.
+
+### 0.1 CubeMX로 프로젝트 생성
+
+1. **STM32CubeMX 실행** → **File → New Project**
+2. **Board Selector** 탭 → 검색: `NUCLEO-N6570` → 선택 → **Start Project**
+3. **Yes** (초기화 확인 다이얼로그)
+4. **Pinout & Configuration** 탭에서 다음 설정:
+   - **System Core → SYS**: `Debug: Serial Wire`
+   - **Connectivity → USART2**: `Mode: Asynchronous` (ST-Link VCP 기본 연결)
+     - USART2 TX=D5, RX=D4 자동 할당 확인
+     - **Parameter Settings**: `Baud Rate: 115200`
+   - **System Core → GPIO**: LD1 (녹색 LED, PG1) 핀 확인
+     - NUCLEO-N6570는 `PG1`에 연결된 사용자 LED 1개 있음
+
+5. **Project Manager** 탭:
+   - **Project Name**: `nucleo_n6570_led_uart`
+   - **Project Location**: 적절한 폴더 선택
+   - **Toolchain / IDE**: `STM32CubeIDE`
+   - **Generate Under the root**: 체크
+
+6. **Generate Code** 버튼 클릭 → 프로젝트 생성
+
+### 0.2 LED 깜빡임 코드
+
+`Core/Src/main.c`의 `main()` 함수 안 `USER CODE BEGIN 2` ~ `USER CODE END 2` 사이에 추가:
+
+```c
+  /* USER CODE BEGIN 2 */
+  printf("STM32N6 Nucleo-6570 Boot OK!\r\n");
+  /* USER CODE END 2 */
+
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+    printf("LED: %s\r\n",
+           HAL_GPIO_ReadPin(LD1_GPIO_Port, LD1_Pin) ? "ON" : "OFF");
+    HAL_Delay(500);
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+```
+
+> **참고**: `printf` 사용을 위해 `Core/Src/main.c` 상단에 `#include <stdio.h>` 추가하고, CubeMX가 생성한 `Core/Src/syscalls.c` 또는 `Core/Src/sysmem.c`에서 `_write` 구현이 STLink UART로 출력되도록 설정되어 있는지 확인하세요. (기본 생성 템플릿에 포함됨)
+
+### 0.3 UART `_write` 재정의 (printf 출력)
+
+`printf`가 USART2로 출력되도록 `Core/Src/main.c`에 추가:
+
+```c
+/* USER CODE BEGIN 0 */
+/* printf → USART2 (ST-Link VCP) */
+int _write(int file, char *ptr, int len)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t *)ptr, len, HAL_MAX_DELAY);
+    return len;
+}
+/* USER CODE END 0 */
+```
+
+### 0.4 빌드 및 플래싱
+
+1. CubeMX가 생성한 `.ioc` 파일을 **STM32CubeIDE**로 열기
+   - 또는 CubeMX **Generate Code** 시 **Open Project** 클릭
+2. **Project → Build All (Ctrl+B)**
+3. **Run → Debug (F11)** 또는 **Run (Ctrl+F11)**
+   - ST-Link 자동 인식 → 보드에 플래싱
+4. 시리얼 모니터 (115200 baud) 확인:
+
+```
+STM32N6 Nucleo-6570 Boot OK!
+LED: ON
+LED: OFF
+LED: ON
+LED: OFF
+...
+```
+
+> **500ms 간격으로 녹색 LED가 깜빡이고 시리얼로 상태가 출력되면 보드와 개발 환경이 정상입니다.**
+
+### 0.5 문제 해결
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| ST-Link 인식 안 됨 | 드라이버 미설치 | [ST-Link 드라이버](https://www.st.com/en/development-tools/stsw-link009.html) 설치 |
+| `No ST-Link detected` | USB 케이블이 데이터 전용 아님 | 데이터 케이블 사용, 다른 USB 포트 시도 |
+| printf 출력 안 됨 | VCP 포트 잘못 선택 | 장치 관리자 COM 포트 번호 확인 |
+| 빌드 에러 (printf) | `_write` 미구현 | 위 0.3절 코드 추가 또는 `syscalls.c` 확인 |
 
 ---
 
