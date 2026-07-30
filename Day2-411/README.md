@@ -1231,6 +1231,674 @@ int __io_putchar(int ch)
 
 > **결론**: STM32F411의 리소스에 여유 있음 (Flash 6%, RAM 6% 사용)
 
+
+```
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include "network.h"
+#include "network_data.h"
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart2;
+
+/* USER CODE BEGIN PV */
+static ai_handle network = AI_HANDLE_NULL;
+static AI_ALIGNED(8) ai_u8 activations_pool[AI_NETWORK_DATA_ACTIVATIONS_SIZE];
+
+/* UART interrupt receive buffer (128 bytes = 128 int8 values) */
+static volatile uint8_t uart_rx_buf[AI_NETWORK_IN_1_SIZE_BYTES];
+static volatile uint8_t uart_data_ready = 0;
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART2_UART_Init(void);
+/* USER CODE BEGIN PFP */
+#ifdef __GNUC__
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+#endif
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* Model quantization parameters (from network_generate_report.txt) */
+#define QSCALE_IN    0.003921569f
+#define QZP_IN      (-128)
+#define QSCALE_OUT   0.003906250f
+#define QZP_OUT     (-128)
+
+static ai_i8 float_to_q7(float val, float scale, int zp)
+{
+    float q = val / scale + zp;
+    if (q < -128) q = -128;
+    if (q > 127) q = 127;
+    return (ai_i8)q;
+}
+
+/* UART receive complete callback (called from ISR) */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART2) {
+        uart_data_ready = 1;
+    }
+}
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USART2_UART_Init();
+  /* USER CODE BEGIN 2 */
+    /* X-Cube-AI 초기화 */
+    ai_error err;
+    err = ai_network_create(&network, AI_NETWORK_DATA_CONFIG);
+    if (err.type != AI_ERROR_NONE) {
+        printf("Network create error: %d\r\n", err.code);
+        Error_Handler();
+    }
+
+    /* 네트워크 파라미터 얻기 (활성화/가중치 버퍼 맵) */
+    ai_network_params params;
+    if (!ai_network_data_params_get(&params)) {
+        printf("Failed to get network params\r\n");
+        Error_Handler();
+    }
+
+    /* 활성화 버퍼 주소 설정 (runtime이 NULL data ptr을 허용하지 않음) */
+    AI_BUFFER_ARRAY_ITEM_SET_ADDRESS(&params.map_activations, 0,
+                                     AI_HANDLE_PTR(&activations_pool));
+
+    /* 네트워크 활성화 (메모리 할당 및 가중치 로드) */
+    if (!ai_network_init(network, &params)) {
+        ai_error err = ai_network_get_error(network);
+        printf("Network init error: type=%d code=%d\r\n", err.type, err.code);
+        Error_Handler();
+    }
+
+    printf("X-Cube-AI initialized!\r\n");
+    printf("Input size: %d (%d bytes), Output size: %d (%d bytes)\r\n",
+           AI_NETWORK_IN_1_SIZE, AI_NETWORK_IN_1_SIZE_BYTES,
+           AI_NETWORK_OUT_1_SIZE, AI_NETWORK_OUT_1_SIZE_BYTES);
+
+    /* UART 인터럽트 수신 시작 (128 bytes = 128 int8) */
+    HAL_UART_Receive_IT(&huart2, (uint8_t*)uart_rx_buf, sizeof(uart_rx_buf));
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+    /* USER CODE BEGIN WHILE */
+      while (1)
+      {
+        /* ---- 1. 입력 버퍼 포인터 얻기 (activations pool에 할당됨) ---- */
+        ai_buffer *input_buff = ai_network_inputs_get(network, NULL);
+        ai_buffer *output_buff = ai_network_outputs_get(network, NULL);
+        ai_i8 *in_data = (ai_i8*)input_buff->data;
+        ai_i8 *out_data = (ai_i8*)output_buff->data;
+
+        /* ---- 2. 데이터 수신 또는 시뮬레이션 ---- */
+        if (uart_data_ready) {
+            uart_data_ready = 0;
+            memcpy(in_data, (uint8_t*)uart_rx_buf, AI_NETWORK_IN_1_SIZE_BYTES);
+            HAL_UART_Receive_IT(&huart2, (uint8_t*)uart_rx_buf, sizeof(uart_rx_buf));
+            printf("--- External Data ---\r\n");
+        } else {
+            /* float 시뮬레이션 생성 → int8 양자화 */
+            for (int i = 0; i < AI_NETWORK_IN_1_SIZE; i++)
+            {
+                float t = (float)i / AI_NETWORK_IN_1_SIZE * 4 * 3.14159f;
+                float fval = (sinf(t) * sinf(t)) + 0.1f * ((float)rand() / RAND_MAX);
+                in_data[i] = float_to_q7(fval, QSCALE_IN, QZP_IN);
+            }
+            printf("--- Simulation Data ---\r\n");
+        }
+
+        /* ---- 3. 추론 실행 ---- */
+        ai_i32 batch = ai_network_run(network, input_buff, output_buff);
+        if (batch != 1) {
+            printf("Inference error!\r\n");
+        }
+
+        /* ---- 4. 결과 해석 (int8 → float 역양자화) ---- */
+        float fout[AI_NETWORK_OUT_1_SIZE];
+        for (int i = 0; i < AI_NETWORK_OUT_1_SIZE; i++) {
+            fout[i] = (out_data[i] - QZP_OUT) * QSCALE_OUT;
+        }
+
+        int predicted_class = 0;
+        float max_prob = fout[0];
+        for (int i = 1; i < AI_NETWORK_OUT_1_SIZE; i++) {
+            if (fout[i] > max_prob) {
+                max_prob = fout[i];
+                predicted_class = i;
+            }
+        }
+
+        const char* class_names[] = {"Normal", "Tachycardia", "Bradycardia"};
+        int pct = (int)(max_prob * 10000);
+        printf("Prediction: %s (%d.%02d%%)\r\n",
+               class_names[predicted_class], pct / 100, pct % 100);
+
+        int r0 = (int)(fout[0] * 10000);
+        int r1 = (int)(fout[1] * 10000);
+        int r2 = (int)(fout[2] * 10000);
+        printf("Raw: %d.%04d %d.%04d %d.%04d\r\n",
+               r0 / 10000, r0 % 10000,
+               r1 / 10000, r1 % 10000,
+               r2 / 10000, r2 % 10000);
+
+        /* 결과에 따라 LED 표시 */
+        if (predicted_class == 0) HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);  // OFF
+        else                     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);      // ON
+
+        HAL_Delay(1000);
+        /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 100;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : B1_Pin */
+  GPIO_InitStruct.Pin = B1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LD2_Pin */
+  GPIO_InitStruct.Pin = LD2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+#ifdef USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */
+
+```
+
+```
+"""
+PPG Signal Sender GUI - STM32F411 X-CUBE-AI
+
+Shows 3 synthetic PPG patterns, let user select one,
+and sends to STM32 via serial (Binary protocol: 512 bytes).
+
+Usage:
+  python ppg_sender_gui.py
+"""
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+import math
+import struct
+import serial
+import serial.tools.list_ports
+import threading
+
+
+def generate_normal():
+    data = []
+    for i in range(128):
+        t = i / 128.0
+        val = math.sin(2 * math.pi * t) ** 2
+        if 0.32 < t < 0.48:
+            notch = (t - 0.32) / 0.16
+            val -= 0.25 * math.sin(notch * math.pi)
+        data.append(max(0.01, val))
+    return data
+
+
+def generate_tachycardia():
+    data = []
+    for i in range(128):
+        t = i / 128.0
+        val = abs(math.sin(3.5 * math.pi * t))
+        val = val ** 0.6
+        data.append(max(0.01, val))
+    return data
+
+
+def generate_bradycardia():
+    data = []
+    for i in range(128):
+        t = i / 128.0
+        val = math.sin(1.1 * math.pi * t) ** 6
+        if val < 0.05:
+            val = 0
+        data.append(max(0.01, val + 0.02 * math.sin(8 * math.pi * t)))
+    return data
+
+
+class PPGApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("PPG Signal Sender - STM32 X-CUBE-AI")
+        self.root.geometry("900x750")
+
+        self.signals = [
+            ("Normal", generate_normal(), "#2ecc71"),
+            ("Tachycardia", generate_tachycardia(), "#e74c3c"),
+            ("Bradycardia", generate_bradycardia(), "#3498db"),
+        ]
+        self.selected_index = 0
+        self.serial_port = None
+        self.connected = False
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        top_frame = ttk.Frame(self.root, padding=5)
+        top_frame.pack(fill=tk.X)
+
+        ttk.Label(top_frame, text="COM Port:").pack(side=tk.LEFT)
+        self.port_var = tk.StringVar()
+        self.port_combo = ttk.Combobox(top_frame, textvariable=self.port_var, width=15)
+        self.port_combo.pack(side=tk.LEFT, padx=5)
+        self.refresh_ports()
+        ttk.Button(top_frame, text="Scan", command=self.refresh_ports).pack(side=tk.LEFT, padx=2)
+        self.connect_btn = ttk.Button(top_frame, text="Connect", command=self.toggle_connect)
+        self.connect_btn.pack(side=tk.LEFT, padx=5)
+        self.status_lbl = ttk.Label(top_frame, text="Disconnected", foreground="red")
+        self.status_lbl.pack(side=tk.LEFT, padx=10)
+
+        plot_frame = ttk.Frame(self.root, padding=5)
+        plot_frame.pack(fill=tk.BOTH, expand=True)
+
+        import matplotlib
+        matplotlib.use('TkAgg')
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        from matplotlib.figure import Figure
+
+        self.fig = Figure(figsize=(9, 5.5), dpi=100)
+        self.fig.subplots_adjust(hspace=0.45, left=0.06, right=0.97, top=0.95, bottom=0.06)
+
+        self.axes = []
+        self.lines = []
+        for idx, (name, data, color) in enumerate(self.signals):
+            ax = self.fig.add_subplot(3, 1, idx + 1)
+            xs = [i / 128.0 for i in range(128)]
+            line, = ax.plot(xs, data, color=color, linewidth=1.8)
+            ax.set_title(name, fontsize=11, fontweight='bold')
+            ax.set_ylabel("Amplitude")
+            ax.set_ylim(-0.1, 1.2)
+            ax.set_xlim(0, 1)
+            ax.tick_params(labelsize=8)
+            ax.grid(True, alpha=0.3)
+            if idx < 2:
+                ax.tick_params(labelbottom=False)
+            else:
+                ax.set_xlabel("Time (normalized)")
+            self.axes.append(ax)
+            self.lines.append(line)
+
+        self.canvas = FigureCanvasTkAgg(self.fig, master=plot_frame)
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+        self.highlight_selected()
+
+        bottom_frame = ttk.Frame(self.root, padding=5)
+        bottom_frame.pack(fill=tk.X)
+
+        info_frame = ttk.LabelFrame(bottom_frame, text="Selection", padding=5)
+        info_frame.pack(fill=tk.X, pady=2)
+
+        self.selection_lbl = ttk.Label(
+            info_frame,
+            text=f"Selected: {self.signals[self.selected_index][0]}",
+            font=("", 10, "bold")
+        )
+        self.selection_lbl.pack(side=tk.LEFT, padx=10)
+
+        self.send_btn = ttk.Button(
+            info_frame, text="Send to STM32", command=self.send_data, state=tk.DISABLED
+        )
+        self.send_btn.pack(side=tk.RIGHT, padx=10)
+
+        result_frame = ttk.LabelFrame(bottom_frame, text="Result", padding=5)
+        result_frame.pack(fill=tk.BOTH, expand=True, pady=2)
+
+        self.result_text = tk.Text(result_frame, height=5, wrap=tk.WORD, state=tk.DISABLED)
+        self.result_text.pack(fill=tk.BOTH, expand=True)
+
+    def refresh_ports(self):
+        ports = [p.device for p in serial.tools.list_ports.comports()]
+        self.port_combo['values'] = ports
+        if ports and not self.port_var.get():
+            self.port_var.set(ports[0])
+
+    def toggle_connect(self):
+        if self.connected:
+            self.disconnect()
+        else:
+            self.connect()
+
+    def connect(self):
+        port = self.port_var.get()
+        if not port:
+            messagebox.showerror("Error", "Select a COM port first")
+            return
+        try:
+            self.serial_port = serial.Serial(port, 115200, timeout=10)
+            self.connected = True
+            self.connect_btn.config(text="Disconnect")
+            self.status_lbl.config(text=f"Connected: {port}", foreground="green")
+            self.send_btn.config(state=tk.NORMAL)
+            self.log(f"Connected to {port}")
+        except Exception as e:
+            messagebox.showerror("Connection Error", str(e))
+
+    def disconnect(self):
+        if self.serial_port:
+            try:
+                self.serial_port.close()
+            except:
+                pass
+            self.serial_port = None
+        self.connected = False
+        self.connect_btn.config(text="Connect")
+        self.status_lbl.config(text="Disconnected", foreground="red")
+        self.send_btn.config(state=tk.DISABLED)
+        self.log("Disconnected")
+
+    def highlight_selected(self):
+        for idx, ax in enumerate(self.axes):
+            for spine in ax.spines.values():
+                spine.set_color('#333333')
+                spine.set_linewidth(1.0)
+            if idx == self.selected_index:
+                for spine in ax.spines.values():
+                    spine.set_color(self.signals[idx][2])
+                    spine.set_linewidth(2.5)
+        self.canvas.draw_idle()
+
+    def on_click(self, event):
+        if event.inaxes is None:
+            return
+        for idx, ax in enumerate(self.axes):
+            if event.inaxes == ax:
+                self.selected_index = idx
+                self.selection_lbl.config(text=f"Selected: {self.signals[idx][0]}")
+                self.highlight_selected()
+                break
+
+    def send_data(self):
+        if not self.connected or not self.serial_port:
+            return
+        self.send_btn.config(state=tk.DISABLED)
+        threading.Thread(target=self._send_thread, daemon=True).start()
+
+    def quantize(self, floats, scale, zp):
+        """Quantize float list to int8 bytes."""
+        result = []
+        for f in floats:
+            q = f / scale + zp
+            q = max(-128, min(127, round(q)))
+            result.append(q)
+        return struct.pack(f'<{len(result)}b', *result)
+
+    def _send_thread(self):
+        try:
+            ser = self.serial_port
+            name, data, _ = self.signals[self.selected_index]
+
+            # Model quantization: scale=0.003921569, zero_point=-128
+            raw_bytes = self.quantize(data, 0.003921569, -128)
+            ser.write(raw_bytes)
+            self.log(f"-> Sent {len(raw_bytes)} bytes ({name})")
+
+            self.log("--- Result ---")
+            found = False
+            for _ in range(100):
+                line = ser.readline()
+                if not line:
+                    break
+                text = line.decode('utf-8', errors='replace').strip()
+                if not text:
+                    continue
+                if found:
+                    self.log(text)
+                    if "Raw:" in text:
+                        break
+                elif "--- External Data ---" in text:
+                    found = True
+                    self.log(text)
+                elif "--- Simulation Data ---" in text and not found:
+                    pass  # skip simulation data
+
+        except Exception as e:
+            self.log(f"Error: {e}")
+        finally:
+            self.root.after(0, lambda: self.send_btn.config(state=tk.NORMAL))
+
+    def log(self, msg):
+        self.root.after(0, lambda: self._append_log(msg))
+
+    def _append_log(self, msg):
+        self.result_text.config(state=tk.NORMAL)
+        self.result_text.insert(tk.END, msg + "\n")
+        self.result_text.see(tk.END)
+        self.result_text.config(state=tk.DISABLED)
+
+
+if __name__ == '__main__':
+    root = tk.Tk()
+    app = PPGApp(root)
+    root.mainloop()
+
+```
+
+
 ---
 
 ## 5. CMSIS-NN 최적화 (13:30-15:00)
