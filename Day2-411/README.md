@@ -601,7 +601,322 @@ Int8 TFLite:    ~7 KB
 
 5. 모델이 추가되면 하단 **Analysis** 탭에서:
    - **Target**: `STM32F411RE` (또는 `cortex-m4f`)
-   - **Analyze** 버튼 클릭
+   - **Analyze** 버튼 클릭 (tflite 파일은 가장 짧은 경로에 한글이 없어야 함. c:\ 아래에 바로 이동하는것이 좋음)
+
+
+* /C:/model/ppg_model_f32.tflite
+
+```
+Analyzing model 
+C:/Users/Administrator/STM32Cube/Repository//Packs/STMicroelectronics/X-CUBE-AI/10.2.1/Utilities/windows/stedgeai.exe analyze --target stm32f4 --name network -m C:/model/ppg_model_f32.tflite --compression none --verbosity 1 --workspace C:/Users/ADMINI~1/AppData/Local/Temp/mxAI_workspace2370414396423002287740613494088094 --output C:/Users/Administrator/.stm32cubemx/network_output 
+ST Edge AI Core v2.2.0-20266 2adc00962 
+Creating c (debug) info json file C:\Users\Administrator\.stm32cubemx\network_output\network_c_info.json 
+  
+ Exec/report summary (analyze) 
+ --------------------------------------------------------------------------------------------------------------- 
+ model file         :   C:\model\ppg_model_f32.tflite                                                            
+ type               :   tflite                                                                                   
+ c_name             :   network                                                                                  
+ compression        :   none                                                                                     
+ options            :   allocate-inputs, allocate-outputs                                                        
+ optimization       :   balanced                                                                                 
+ target/series      :   stm32f4                                                                                  
+ workspace dir      :   C:\Users\ADMINI~1\AppData\Local\Temp\mxAI_workspace2370414396423002287740613494088094    
+ output dir         :   C:\Users\Administrator\.stm32cubemx\network_output                                       
+ model_fmt          :   float                                                                                    
+ model_name         :   ppg_model_f32                                                                            
+ model_hash         :   0x229f9575e154a6846c28b6de7edb71ba                                                       
+ params #           :   8,195 items (32.01 KiB)                                                                  
+ --------------------------------------------------------------------------------------------------------------- 
+ input 1/1          :   'serving_default_ppg_input0', f32(1x128x1), 512 Bytes, activations                       
+ output 1/1         :   'nl_14', f32(1x3), 12 Bytes, activations                                                 
+ macc               :   39,736                                                                                   
+ weights (ro)       :   32,780 B (32.01 KiB) (1 segment)                                                         
+ activations (rw)   :   5,920 B (5.78 KiB) (1 segment) *                                                         
+ ram (total)        :   5,920 B (5.78 KiB) = 5,920 + 0 + 0                                                       
+ --------------------------------------------------------------------------------------------------------------- 
+ (*) 'input'/'output' buffers are allocated in the activations buffer 
+Computing AI RT data/code size (target=stm32f4).. 
+ Model name - ppg_model_f32 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ m_id   layer (original)                oshape                param/size         macc                 connected to 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 0      serving_default_ppg_input0 ()   [b:1,h:128,c:1] 
+        reshape_0 (EXPAND_DIMS)         [b:1,h:1,w:128,c:1]                             serving_default_ppg_input0 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 1      conv2d_1 (CONV_2D)              [b:1,h:1,w:124,c:8]   48/192            4,968                    reshape_0 
+        nl_1_nl (CONV_2D)               [b:1,h:1,w:124,c:8]                       992                     conv2d_1 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 2      reshape_2 (RESHAPE)             [b:1,h:124,c:8]                                                    nl_1_nl 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 3      reshape_3 (EXPAND_DIMS)         [b:1,h:1,w:124,c:8]                                              reshape_2 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 4      pool_4 (MAX_POOL_2D)            [b:1,h:1,w:62,c:8]                        992                    reshape_3 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 5      reshape_5 (RESHAPE)             [b:1,h:62,c:8]                                                      pool_4 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 6      reshape_6 (EXPAND_DIMS)         [b:1,h:1,w:62,c:8]                                               reshape_5 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 7      conv2d_7 (CONV_2D)              [b:1,h:1,w:60,c:16]   400/1,600        23,056                    reshape_6 
+        nl_7_nl (CONV_2D)               [b:1,h:1,w:60,c:16]                       960                     conv2d_7 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 8      reshape_8 (RESHAPE)             [b:1,h:60,c:16]                                                    nl_7_nl 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 9      reshape_9 (EXPAND_DIMS)         [b:1,h:1,w:60,c:16]                                              reshape_8 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 10     pool_10 (MAX_POOL_2D)           [b:1,h:1,w:30,c:16]                       960                    reshape_9 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 11     reshape_11 (RESHAPE)            [b:1,c:480]                                                        pool_10 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 12     arith_constant8 ()              [b:16,c:480]          7,680/30,720 
+        arith_constant10 ()             [b:16]                16/64 
+        gemm_12 (FULLY_CONNECTED)       [b:1,c:16]                              7,696                   reshape_11 
+                                                                                                   arith_constant8 
+                                                                                                  arith_constant10 
+        nl_12_nl (FULLY_CONNECTED)      [b:1,c:16]                                 16                      gemm_12 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 13     arith_constant7 ()              [b:3,c:16]            48/192 
+        arith_constant9 ()              [b:3]                 3/12 
+        gemm_13 (FULLY_CONNECTED)       [b:1,c:3]                                  51                     nl_12_nl 
+                                                                                                   arith_constant7 
+                                                                                                   arith_constant9 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ 14     nl_14 (SOFTMAX)                 [b:1,c:3]                                  45                      gemm_13 
+ ------ ------------------------------- --------------------- -------------- -------- ---------------------------- 
+ model: macc=39,736 weights=32,780 activations=-- io=-- 
+ Number of operations per c-layer 
+ ------- ------ ------------------------- -------- -------------- 
+ c_id    m_id   name (type)                    #op           type 
+ ------- ------ ------------------------- -------- -------------- 
+ 0       1      conv2d_1 (Conv2D)            4,968   smul_f32_f32 
+ 1       1      nl_1_nl (Nonlinearity)         992     op_f32_f32 
+ 2       4      pool_4 (Pool)                  992   smul_f32_f32 
+ 3       7      conv2d_7 (Conv2D)           23,056   smul_f32_f32 
+ 4       7      nl_7_nl (Nonlinearity)         960     op_f32_f32 
+ 5       10     pool_10 (Pool)                 960   smul_f32_f32 
+ 6       12     gemm_12 (Dense)              7,696   smul_f32_f32 
+ 7       12     nl_12_nl (Nonlinearity)         16     op_f32_f32 
+ 8       13     gemm_13 (Dense)                 51   smul_f32_f32 
+ 9       14     nl_14 (Nonlinearity)            45     op_f32_f32 
+ ------- ------ ------------------------- -------- -------------- 
+ total                                      39,736 
+ Number of operation types 
+ ---------------- -------- ----------- 
+ operation type          #           % 
+ ---------------- -------- ----------- 
+ smul_f32_f32       37,723       94.9% 
+ op_f32_f32          2,013        5.1% 
+ Complexity report (model) 
+ ------ ----------------- ------------------------- ------------------------- -------- 
+ m_id   name              c_macc                    c_rom                     c_id 
+ ------ ----------------- ------------------------- ------------------------- -------- 
+ 1      conv2d_1          ||||              15.0%   |                  0.6%   [0, 1] 
+ 4      pool_4            |                  2.5%   |                  0.0%   [2] 
+ 7      conv2d_7          ||||||||||||||||  60.4%   |                  4.9%   [3, 4] 
+ 10     pool_10           |                  2.4%   |                  0.0%   [5] 
+ 12     arith_constant8   |||||             19.4%   ||||||||||||||||  93.9%   [6, 7] 
+ 13     arith_constant7   |                  0.1%   |                  0.6%   [8] 
+ 14     nl_14             |                  0.1%   |                  0.0%   [9] 
+ ------ ----------------- ------------------------- ------------------------- -------- 
+ macc=39,736 weights=32,780 act=5,920 ram_io=0 
+ Requested memory size by section - "stm32f4" target 
+ ------------------------------ -------- -------- ------- ------- 
+ module                             text   rodata    data     bss 
+ ------------------------------ -------- -------- ------- ------- 
+ NetworkRuntime1020_CM4_GCC.a      9,436        0       0       0 
+ network.o                           664       80   2,988     232 
+ network_data.o                       48       16      88       0 
+ lib (toolchain)*                    712       24       0       0 
+ ------------------------------ -------- -------- ------- ------- 
+ RT total**                       10,860      120   3,076     232 
+ ------------------------------ -------- -------- ------- ------- 
+ weights                               0   32,784       0       0 
+ activations                           0        0       0   5,920 
+ io                                    0        0       0       0 
+ ------------------------------ -------- -------- ------- ------- 
+ TOTAL                            10,860   32,904   3,076   6,152 
+ ------------------------------ -------- -------- ------- ------- 
+ *  toolchain objects (libm/libgcc*) 
+ ** RT AI runtime objects (kernels+infrastructure) 
+  Summary - "stm32f4" target 
+  --------------------------------------------------- 
+               FLASH (ro)      %*   RAM (rw)       % 
+  --------------------------------------------------- 
+  RT total         14,056   30.0%      3,308   35.8% 
+  --------------------------------------------------- 
+  TOTAL            46,840              9,228 
+  --------------------------------------------------- 
+  *  rt/total 
+Creating txt report file C:\Users\Administrator\.stm32cubemx\network_output\network_analyze_report.txt 
+elapsed time (analyze): 14.325s 
+Model file:      ppg_model_f32.tflite 
+Total Flash:     46836 B (45.74 KiB) 
+    Weights:     32780 B (32.01 KiB) 
+    Library:     14056 B (13.73 KiB) 
+Total Ram:       9228 B (9.01 KiB) 
+    Activations: 5920 B (5.78 KiB) 
+    Library:     3308 B (3.23 KiB) 
+    Input:       512 B (included in Activations) 
+    Output:      12 B (included in Activations) 
+Done 
+Analyze complete on AI model
+```
+
+* /C:/model/ppg_model_i8.tflite
+```
+
+
+Analyzing model 
+C:/Users/Administrator/STM32Cube/Repository//Packs/STMicroelectronics/X-CUBE-AI/10.2.1/Utilities/windows/stedgeai.exe analyze --target stm32f4 --name network -m C:/model/ppg_model_i8.tflite --compression none --verbosity 1 --workspace C:/Users/ADMINI~1/AppData/Local/Temp/mxAI_workspace2371931428147007682268062020999004 --output C:/Users/Administrator/.stm32cubemx/network_output 
+ST Edge AI Core v2.2.0-20266 2adc00962 
+Creating c (debug) info json file C:\Users\Administrator\.stm32cubemx\network_output\network_c_info.json 
+  
+ Exec/report summary (analyze) 
+ ----------------------------------------------------------------------------------------------------------------------------- 
+ model file         :   C:\model\ppg_model_i8.tflite                                                                           
+ type               :   tflite                                                                                                 
+ c_name             :   network                                                                                                
+ compression        :   none                                                                                                   
+ options            :   allocate-inputs, allocate-outputs                                                                      
+ optimization       :   balanced                                                                                               
+ target/series      :   stm32f4                                                                                                
+ workspace dir      :   C:\Users\ADMINI~1\AppData\Local\Temp\mxAI_workspace2371931428147007682268062020999004                  
+ output dir         :   C:\Users\Administrator\.stm32cubemx\network_output                                                     
+ model_fmt          :   ss/sa per channel                                                                                      
+ model_name         :   ppg_model_i8                                                                                           
+ model_hash         :   0xec343715106d0ae325ca72f819e4839a                                                                     
+ params #           :   8,195 items (8.13 KiB)                                                                                 
+ ----------------------------------------------------------------------------------------------------------------------------- 
+ input 1/1          :   'serving_default_ppg_input0', int8(1x128x1), 128 Bytes, QLinear(0.003921569,-128,int8), activations    
+ output 1/1         :   'nl_14', int8(1x3), 3 Bytes, QLinear(0.003906250,-128,int8), activations                               
+ macc               :   37,768                                                                                                 
+ weights (ro)       :   8,324 B (8.13 KiB) (1 segment) / -24,456(-74.6%) vs float model                                        
+ activations (rw)   :   2,544 B (2.48 KiB) (1 segment) *                                                                       
+ ram (total)        :   2,544 B (2.48 KiB) = 2,544 + 0 + 0                                                                     
+ ----------------------------------------------------------------------------------------------------------------------------- 
+ (*) 'input'/'output' buffers are allocated in the activations buffer 
+Computing AI RT data/code size (target=stm32f4).. 
+ Model name - ppg_model_i8 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ m_id   layer (original)                oshape                param/size        macc                 connected to 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 0      serving_default_ppg_input0 ()   [b:1,h:128,c:1] 
+        reshape_0 (EXPAND_DIMS)         [b:1,h:1,w:128,c:1]                            serving_default_ppg_input0 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 1      conv2d_1 (CONV_2D)              [b:1,h:1,w:124,c:8]   48/72            4,968                    reshape_0 
+        nl_1_nl (CONV_2D)               [b:1,h:1,w:124,c:8]                      992                     conv2d_1 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 2      reshape_2 (RESHAPE)             [b:1,h:124,c:8]                                                   nl_1_nl 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 3      reshape_3 (EXPAND_DIMS)         [b:1,h:1,w:124,c:8]                                             reshape_2 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 4      pool_4 (MAX_POOL_2D)            [b:1,h:1,w:62,c:8]                       992                    reshape_3 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 5      reshape_5 (RESHAPE)             [b:1,h:62,c:8]                                                     pool_4 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 6      reshape_6 (EXPAND_DIMS)         [b:1,h:1,w:62,c:8]                                              reshape_5 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 7      conv2d_7 (CONV_2D)              [b:1,h:1,w:60,c:16]   400/448         23,056                    reshape_6 
+        nl_7_nl (CONV_2D)               [b:1,h:1,w:60,c:16]                      960                     conv2d_7 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 8      reshape_8 (RESHAPE)             [b:1,h:60,c:16]                                                   nl_7_nl 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 9      reshape_9 (EXPAND_DIMS)         [b:1,h:1,w:60,c:16]                                             reshape_8 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 10     pool_10 (MAX_POOL_2D)           [b:1,h:1,w:30,c:16]                      960                    reshape_9 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 11     reshape_11 (RESHAPE)            [b:1,c:480]                                                       pool_10 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 12     tfl_pseudo_qconst3 ()           [b:16,c:480]          7,680/7,680 
+        tfl_pseudo_qconst2 ()           [b:16]                16/64 
+        gemm_12 (FULLY_CONNECTED)       [b:1,c:16]                             7,696                   reshape_11 
+                                                                                               tfl_pseudo_qconst3 
+                                                                                               tfl_pseudo_qconst2 
+        nl_12_nl (FULLY_CONNECTED)      [b:1,c:16]                                16                      gemm_12 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 13     tfl_pseudo_qconst1 ()           [b:3,c:16]            48/48 
+        tfl_pseudo_qconst ()            [b:3]                 3/12 
+        gemm_13 (FULLY_CONNECTED)       [b:1,c:3]                                 51                     nl_12_nl 
+                                                                                               tfl_pseudo_qconst1 
+                                                                                                tfl_pseudo_qconst 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ 14     nl_14 (SOFTMAX)                 [b:1,c:3]                                 45                      gemm_13 
+ ------ ------------------------------- --------------------- ------------- -------- ---------------------------- 
+ model: macc=39,736 weights=8,324 activations=-- io=-- 
+ Number of operations per c-layer 
+ ------- ------ ---------------------- -------- ------------ 
+ c_id    m_id   name (type)                 #op         type 
+ ------- ------ ---------------------- -------- ------------ 
+ 0       1      conv2d_1 (Conv2D)         4,968   smul_s8_s8 
+ 1       4      pool_4 (Pool)               992   smul_s8_s8 
+ 2       7      conv2d_7 (Conv2D)        23,056   smul_s8_s8 
+ 3       10     pool_10 (Pool)              960   smul_s8_s8 
+ 4       12     gemm_12 (Dense)           7,696   smul_s8_s8 
+ 5       13     gemm_13 (Dense)              51   smul_s8_s8 
+ 6       14     nl_14 (Nonlinearity)         45     op_s8_s8 
+ ------- ------ ---------------------- -------- ------------ 
+ total                                   37,768 
+ Number of operation types 
+ ---------------- -------- ----------- 
+ operation type          #           % 
+ ---------------- -------- ----------- 
+ smul_s8_s8         37,723       99.9% 
+ op_s8_s8               45        0.1% 
+ Complexity report (model) 
+ ------ -------------------- ------------------------- ------------------------- ------ 
+ m_id   name                 c_macc                    c_rom                     c_id 
+ ------ -------------------- ------------------------- ------------------------- ------ 
+ 1      conv2d_1             ||||              13.2%   |                  0.9%   [0] 
+ 4      pool_4               |                  2.6%   |                  0.0%   [1] 
+ 7      conv2d_7             ||||||||||||||||  61.0%   |                  5.4%   [2] 
+ 10     pool_10              |                  2.5%   |                  0.0%   [3] 
+ 12     tfl_pseudo_qconst3   ||||||            20.4%   ||||||||||||||||  93.0%   [4] 
+ 13     tfl_pseudo_qconst1   |                  0.1%   |                  0.7%   [5] 
+ 14     nl_14                |                  0.1%   |                  0.0%   [6] 
+ ------ -------------------- ------------------------- ------------------------- ------ 
+ macc=37,768 weights=8,324 act=2,544 ram_io=0 
+ Requested memory size by section - "stm32f4" target 
+ ------------------------------ -------- -------- ------- ------- 
+ module                             text   rodata    data     bss 
+ ------------------------------ -------- -------- ------- ------- 
+ NetworkRuntime1020_CM4_GCC.a     18,756        0       0       0 
+ network.o                           676      531   2,728     196 
+ network_data.o                       48       16      88       0 
+ lib (toolchain)*                      0        0       0       0 
+ ------------------------------ -------- -------- ------- ------- 
+ RT total**                       19,480      547   2,816     196 
+ ------------------------------ -------- -------- ------- ------- 
+ weights                               0    8,328       0       0 
+ activations                           0        0       0   2,544 
+ io                                    0        0       0       0 
+ ------------------------------ -------- -------- ------- ------- 
+ TOTAL                            19,480    8,875   2,816   2,740 
+ ------------------------------ -------- -------- ------- ------- 
+ *  toolchain objects (libm/libgcc*) 
+ ** RT AI runtime objects (kernels+infrastructure) 
+  Summary - "stm32f4" target 
+  --------------------------------------------------- 
+               FLASH (ro)      %*   RAM (rw)       % 
+  --------------------------------------------------- 
+  RT total         22,843   73.3%      3,012   54.2% 
+  --------------------------------------------------- 
+  TOTAL            31,171              5,556 
+  --------------------------------------------------- 
+  *  rt/total 
+Creating txt report file C:\Users\Administrator\.stm32cubemx\network_output\network_analyze_report.txt 
+elapsed time (analyze): 15.238s 
+Model file:      ppg_model_i8.tflite 
+Total Flash:     31167 B (30.44 KiB) 
+    Weights:     8324 B (8.13 KiB) 
+    Library:     22843 B (22.31 KiB) 
+Total Ram:       5556 B (5.43 KiB) 
+    Activations: 2544 B (2.48 KiB) 
+    Library:     3012 B (2.94 KiB) 
+    Input:       128 B (included in Activations) 
+    Output:      3 B (included in Activations) 
+Done 
+Analyze complete on AI model
+```
 
 6. **Analyze 실패 시 대처:**
 
