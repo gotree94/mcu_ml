@@ -14,6 +14,9 @@
 
 ---
 
+* 주의사항 : #include <stm32_case1_inferencing.h> 를 본인 헤더파일로 수정할것.
+
+
 ```
 /* Edge Impulse Arduino examples
  * Copyright (c) 2022 EdgeImpulse Inc.
