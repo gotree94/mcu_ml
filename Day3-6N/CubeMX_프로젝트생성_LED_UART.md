@@ -1,6 +1,6 @@
 # CubeMX로 STM32N6 LED + UART 프로젝트 만들기
 
-**환경**: STM32CubeMX 6.18.0 / STM32CubeIDE 2.2.0
+**환경**: STM32CubeMX 6.18.0 / STM32CubeIDE 2.2.0 <br>
 **보드**: NUCLEO-N657X0-Q (STM32N657X0H3Q, Cortex-M55)
 
 ---
