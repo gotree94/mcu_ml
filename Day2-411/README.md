@@ -921,6 +921,35 @@ Analyze complete on AI model
 
 # STM32 X-CUBE-AI 모델 분석 결과 비교
 
+```
+Creating txt report file C:\Users\user\.stm32cubemx\network_output\network_analyze_report.txt 
+elapsed time (analyze): 17.893s 
+Model file:      ppg_model_f32.tflite 
+Total Flash:     46836 B (45.74 KiB) 
+    Weights:     32780 B (32.01 KiB) 
+    Library:     14056 B (13.73 KiB) 
+Total Ram:       9228 B (9.01 KiB) 
+    Activations: 5920 B (5.78 KiB) 
+    Library:     3308 B (3.23 KiB) 
+    Input:       512 B (included in Activations) 
+    Output:      12 B (included in Activations)
+
+=============================================
+Creating txt report file C:\Users\user\.stm32cubemx\network_output\network_analyze_report.txt 
+elapsed time (analyze): 16.586s 
+Model file:      ppg_model_i8.tflite 
+Total Flash:     31167 B (30.44 KiB) 
+    Weights:     8324 B (8.13 KiB) 
+    Library:     22843 B (22.31 KiB) 
+Total Ram:       5556 B (5.43 KiB) 
+    Activations: 2544 B (2.48 KiB) 
+    Library:     3012 B (2.94 KiB) 
+    Input:       128 B (included in Activations) 
+    Output:      3 B (included in Activations) 
+Done
+
+```
+
 ## 모델 개요
 
 | 항목 | Float32 | INT8 Quantization |
