@@ -4,6 +4,8 @@
 
 ![](en.nucleo-n657x0-q.jpg)
 
+![](N6_PIN.png)
+
 * https://github.com/STMicroelectronics/STM32CubeN6/tree/main/Projects/NUCLEO-N657X0-Q/Examples
 * git clone https://github.com/STMicroelectronics/STM32CubeN6.git
 
