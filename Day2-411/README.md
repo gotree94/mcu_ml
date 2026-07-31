@@ -1658,6 +1658,10 @@ void assert_failed(uint8_t *file, uint32_t line)
 
 ```
 
+```
+pip install pyserial
+```
+
 ```python
 """
 PPG Signal Sender GUI - STM32F411 X-CUBE-AI
