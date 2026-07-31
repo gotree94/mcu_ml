@@ -1313,6 +1313,8 @@ int __io_putchar(int ch)
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+static AI_ALIGNED(4) float ai_input[AI_NETWORK_IN_1_SIZE];
+static AI_ALIGNED(4) float ai_output[AI_NETWORK_OUT_1_SIZE];
 static ai_handle network = AI_HANDLE_NULL;
 static AI_ALIGNED(8) ai_u8 activations_pool[AI_NETWORK_DATA_ACTIVATIONS_SIZE];
 
