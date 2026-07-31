@@ -1,5 +1,8 @@
 # STM32CubeN6 MCU Firmware Package
 
+![](en.nucleo-n657x0-q.jpg)
+
+
 ![tag](https://img.shields.io/badge/tag-v1.4.0-brightgreen.svg)
 
 > [!IMPORTANT]
