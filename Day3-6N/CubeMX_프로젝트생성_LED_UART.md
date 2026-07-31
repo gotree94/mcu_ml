@@ -7,9 +7,9 @@
 
 ## 개요
 
-STM32N6는 **TrustZone**을 지원하는 Cortex-M55 기반 MCU입니다. 일반 STM32(F4/F7/H7)와 달리 프로젝트가 **FSBL**(Secure Bootloader)과 **Appli**(Non-Secure Application)로 분리됩니다.
+STM32N6는 **TrustZone**을 지원하는 Cortex-M55 기반 MCU입니다. <br> 일반 STM32(F4/F7/H7)와 달리 프로젝트가 **FSBL**(Secure Bootloader)과 **Appli**(Non-Secure Application)로 분리됩니다.
 
-> **처음부터 만들기보다 STM32CubeN6 공식 예제로 시작하는 것을 권장합니다.**
+> **처음부터 만들기보다 STM32CubeN6 공식 예제로 시작하는 것을 권장합니다.** <br> 
 > 이 문서는 예제 없이 직접 만들 때의 전체 과정을 설명합니다.
 
 ---
