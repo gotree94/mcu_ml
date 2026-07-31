@@ -2506,6 +2506,15 @@ while (1) {
 }
 ```
 
+![](22001.png)
+
+![](22002.png)
+
+![](22003.png)
+
+
+
+
 #### 3. CMSIS-NN 최적화 옵션 (CubeIDE)
 
 **Project Properties → C/C++ Build → Settings → Tool Settings → MCU GCC Compiler**:
