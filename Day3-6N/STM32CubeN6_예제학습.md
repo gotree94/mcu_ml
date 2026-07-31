@@ -2,6 +2,8 @@
 
 **보드**: NUCLEO-N657X0-Q (STM32N657X0HxQ, Cortex-M55 + Neural-ART NPU)
 
+![](en.nucleo-n657x0-q.jpg)
+
 * https://github.com/STMicroelectronics/STM32CubeN6/tree/main/Projects/NUCLEO-N657X0-Q/Examples
 * git clone https://github.com/STMicroelectronics/STM32CubeN6.git
 
