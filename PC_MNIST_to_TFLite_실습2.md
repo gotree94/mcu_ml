@@ -52,6 +52,8 @@ p  = softmax(z3)                                # 확률
 
 ## 4. 출력 그림 해석
 
+* mnist_flow_view.py
+
 ```
 import numpy as np
 import matplotlib.pyplot as plt
