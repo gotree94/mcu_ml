@@ -52,6 +52,67 @@ p  = softmax(z3)                                # 확률
 
 ## 4. 출력 그림 해석
 
+```
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow import keras
+import matplotlib.pyplot as plt
+plt.rcParams['font.family'] = 'Malgun Gothic'   # Windows 기본 한글 폰트
+plt.rcParams['axes.unicode_minus'] = False       # 마이너스(-) 기호 깨짐 방지
+
+# 1. 모델에서 가중치만 꺼내기 (Dense 3개)
+model = keras.models.load_model('mnist_pc_model.h5', compile=False)
+dense = [l for l in model.layers if l.get_weights()]
+W = [l.get_weights()[0] for l in dense]   # (784,128), (128,64), (64,10)
+B = [l.get_weights()[1] for l in dense]
+
+# 2. 테스트 이미지 1장 (원하는 인덱스로 변경)
+IDX = 0
+(_, _), (x_test, y_test) = keras.datasets.mnist.load_data()
+img = x_test[IDX].astype(np.float32) / 255.0
+
+# 3. 순전파를 직접 계산 (단계별 값 보관)
+x0 = img.reshape(784)                      # Flatten
+z1 = x0 @ W[0] + B[0]; a1 = np.maximum(z1, 0)   # Dense128 + ReLU
+z2 = a1 @ W[1] + B[1]; a2 = np.maximum(z2, 0)   # Dense64 + ReLU
+z3 = a2 @ W[2] + B[2]
+e = np.exp(z3 - z3.max()); p = e / e.sum()      # Softmax
+
+# 4. 시각화
+fig = plt.figure(figsize=(16, 9))
+gs = fig.add_gridspec(3, 4)
+
+ax = fig.add_subplot(gs[0, 0]); ax.imshow(img, cmap='gray')
+ax.set_title(f'입력 28x28 (정답 {y_test[IDX]})'); ax.axis('off')
+
+ax = fig.add_subplot(gs[0, 1:]); ax.imshow(x0[None, :], aspect='auto', cmap='gray')
+ax.set_title('Flatten: 784개 값으로 펼침'); ax.set_yticks([])
+
+ax = fig.add_subplot(gs[1, :]); ax.imshow(a1[None, :], aspect='auto', cmap='viridis')
+ax.set_title(f'Dense(128)+ReLU 출력 (활성 뉴런 {np.count_nonzero(a1)}/128)'); ax.set_yticks([])
+
+ax = fig.add_subplot(gs[2, 0:2]); ax.imshow(a2[None, :], aspect='auto', cmap='viridis')
+ax.set_title(f'Dense(64)+ReLU 출력 (활성 뉴런 {np.count_nonzero(a2)}/64)'); ax.set_yticks([])
+
+ax = fig.add_subplot(gs[2, 2:]); ax.bar(range(10), p)
+ax.set_xticks(range(10)); ax.set_title(f'Softmax 결과: 예측 = {p.argmax()}')
+
+plt.tight_layout(); plt.show()
+
+# 5. 첫 은닉층 뉴런이 "무엇을 보는지" (가중치 28x28 + 입력과 곱한 기여도)
+top = np.argsort(a1)[-6:][::-1]            # 가장 크게 반응한 뉴런 6개
+fig, axs = plt.subplots(2, 6, figsize=(14, 5))
+for i, n in enumerate(top):
+    w = W[0][:, n].reshape(28, 28)
+    axs[0, i].imshow(w, cmap='seismic', vmin=-abs(w).max(), vmax=abs(w).max())
+    axs[0, i].set_title(f'뉴런 {n} 가중치'); axs[0, i].axis('off')
+    c = (x0 * W[0][:, n]).reshape(28, 28)
+    axs[1, i].imshow(c, cmap='seismic', vmin=-abs(c).max(), vmax=abs(c).max())
+    axs[1, i].set_title(f'입력x가중치 (합+b={z1[n]:.2f})'); axs[1, i].axis('off')
+plt.tight_layout(); plt.show()
+```
+
+
 ### 4.1 첫 번째 창: 입력에서 결과까지의 흐름
 
 ![](mnist_001.png)
