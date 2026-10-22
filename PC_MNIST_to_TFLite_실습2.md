@@ -115,13 +115,12 @@ p  = softmax(z3)                                # 확률
 
 ## 1. 구조(레이어 연결 관계) 시각화
 
-Netron (가장 추천)
+* Netron (가장 추천)
+   * 저장한 mnist_pc_model.h5 파일을 그대로 열면 레이어 연결, shape, 가중치까지 그래프로 보여줍니다.
+   * 설치 없이 https://netron.app 에서 파일을 드래그하면 됩니다. 데스크톱 앱, pip install netron도 가능합니다.
+   * 나중에 TFLite(.tflite)나 ONNX로 변환한 모델도 같은 방식으로 볼 수 있어서, MCU/NPU 쪽 작업에도 유용합니다.
 
-저장한 mnist_pc_model.h5 파일을 그대로 열면 레이어 연결, shape, 가중치까지 그래프로 보여줍니다.
-설치 없이 https://netron.app 에서 파일을 드래그하면 됩니다. 데스크톱 앱, pip install netron도 가능합니다.
-나중에 TFLite(.tflite)나 ONNX로 변환한 모델도 같은 방식으로 볼 수 있어서, MCU/NPU 쪽 작업에도 유용합니다.
-
-keras.utils.plot_model (코드 안에서 바로)
+* keras.utils.plot_model (코드 안에서 바로)
 
 ```python
 keras.utils.plot_model(
@@ -133,8 +132,8 @@ keras.utils.plot_model(
 )
 ```
 
-Graphviz 프로그램과 pip install pydot이 필요합니다.
-주의: 현재 코드의 Sequential 모델은 model.summary()나 plot_model을 쓰려면 입력이 정의돼 있어야 하는데, 이 코드는 InputLayer가 있어서 바로 동작합니다.
+   * Graphviz 프로그램과 pip install pydot이 필요합니다.
+   * 주의: 현재 코드의 Sequential 모델은 model.summary()나 plot_model을 쓰려면 입력이 정의돼 있어야 하는데, 이 코드는 InputLayer가 있어서 바로 동작합니다.
 
 ## 2. 학습 과정 중 값 변화 보기
 
@@ -146,13 +145,12 @@ callbacks = [
     keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True),
     tb
 ]
-
-실행: tensorboard --logdir logs
 ```
+* 실행: tensorboard --logdir logs
 
-Graphs 탭: 레이어 연산 그래프
-Histograms/Distributions 탭: 레이어별 가중치와 편향 분포 변화
-Scalars 탭: loss, accuracy 곡선
+   * Graphs 탭: 레이어 연산 그래프
+   * Histograms/Distributions 탭: 레이어별 가중치와 편향 분포 변화
+   * Scalars 탭: loss, accuracy 곡선
 
 ## 3. 중간 레이어의 실제 출력값(활성화) 보기
 
@@ -171,7 +169,7 @@ for layer, act in zip(model.layers, activations):
     print(f"{layer.name:12s} 출력 shape: {act.shape}")
 ```
 
-이 값을 matplotlib으로 막대그래프나 히트맵으로 그리면, Dense(128)와 Dense(64)가 어떤 뉴런을 활성화하는지 볼 수 있습니다.
+   * 이 값을 matplotlib으로 막대그래프나 히트맵으로 그리면, Dense(128)와 Dense(64)가 어떤 뉴런을 활성화하는지 볼 수 있습니다.
 
 ## 4. 가중치 자체 보기
 
@@ -182,13 +180,14 @@ for layer in model.layers:
         print(layer.name, w.shape, b.shape)
 ````
 
-첫 Dense(128)의 가중치(784×128)를 28×28 이미지 128장으로 reshape해서 그려보면, 각 뉴런이 어떤 패턴을 찾는지 시각적으로 볼 수 있습니다.
+   * 첫 Dense(128)의 가중치(784×128)를 28×28 이미지 128장으로 reshape해서 그려보면, 각 뉴런이 어떤 패턴을 찾는지 시각적으로 볼 수 있습니다.
 
-추천 순서
-먼저 Netron으로 전체 구조 확인 (가장 빠름)
-학습 과정이 궁금하면 TensorBoard
-레이어 간 데이터 흐름을 직접 보려면 활성화 추출 코드
+* 추천 순서
+   * 먼저 Netron으로 전체 구조 확인 (가장 빠름)
+   * 학습 과정이 궁금하면 TensorBoard
+   * 레이어 간 데이터 흐름을 직접 보려면 활성화 추출 코드
 
-참고로 이 코드는 .h5 저장과 input_shape= 인자를 쓰고 있는데, 최신 Keras 3 환경에서는 경고가 나거나 .keras 형식을 권장합니다. 실행 시 문제가 생기면 model.save('mnist_pc_model.keras')로 바꾸고, InputLayer 대신 keras.Input(shape=(28,28,1))을 쓰면 됩니다.
+* 참고로 이 코드는 .h5 저장과 input_shape= 인자를 쓰고 있는데, 최신 Keras 3 환경에서는 경고가 나거나 .keras 형식을 권장합니다.
+* 실행 시 문제가 생기면 model.save('mnist_pc_model.keras')로 바꾸고, InputLayer 대신 keras.Input(shape=(28,28,1))을 쓰면 됩니다.
 
 
