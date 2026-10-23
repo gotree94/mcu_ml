@@ -53,6 +53,8 @@ p  = softmax(z3)                                # 확률
 ### 활성화 함수(Activation Function)
 출처: https://jdcyber.tistory.com/98 [JD Tech Now:티스토리]
 
+![](Activation_Function_001.png)
+
 ###  1. 활성화 함수란 무엇인가?
 
 * 🧠 활성화 함수는 뉴럴 네트워크 안에서 뉴런의 출력값을 결정해주는 함수입니다.
@@ -75,6 +77,8 @@ p  = softmax(z3)                                # 확률
  
 **Sigmoid 함수**
 
+![](Activation_Function_002.png)
+
 * ✔ 특징
     * 출력값이 항상 0과 1 사이
     * 입력값이 커질수록 출력은 1에 가까워지고, 작아질수록 0에 가까워짐
@@ -85,6 +89,8 @@ p  = softmax(z3)                                # 확률
 
 
 **Tanh 함수 (Hyperbolic Tangent)**
+
+![](Activation_Function_003.png)
 
 * ✔ 특징
     * 출력값이 -1과 1 사이
@@ -98,6 +104,7 @@ p  = softmax(z3)                                # 확률
 
 **ReLU 함수 (Rectified Linear Unit)**
 
+![](Activation_Function_004.png)
 
 * ✔ 특징
     * 입력이 0보다 작으면 0, 크면 그대로 출력
@@ -111,6 +118,8 @@ p  = softmax(z3)                                # 확률
 * 사용 예시: CNN, DNN 대부분의 심층 네트워크
 
 **Softmax 함수**
+
+![](Activation_Function_005.png)
 
 * 특징
     * 다중 클래스 분류 문제에서 출력층에 사용
