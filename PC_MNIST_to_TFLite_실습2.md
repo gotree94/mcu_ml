@@ -48,9 +48,171 @@ p  = softmax(z3)                                # 확률
 - 각 단계의 중간값을 변수로 보관하기 때문에 그림으로 그릴 수 있습니다.
 - 이 연산 구조(행렬곱, 편향 덧셈, ReLU, Softmax)가 MCU/NPU로 이식할 때 구현해야 할 연산 그 자체입니다.
 
+--- 
+
+### 활성화 함수(Activation Function)
+출처: https://jdcyber.tistory.com/98 [JD Tech Now:티스토리]
+
+###  1. 활성화 함수란 무엇인가?
+
+* 🧠 활성화 함수는 뉴럴 네트워크 안에서 뉴런의 출력값을 결정해주는 함수입니다.
+   * 뉴런의 출력 결정자: 입력값 × 가중치 + 편향 → 활성화 함수 통과 → 출력값 생성
+   * 비선형성 도입: 이 함수 덕분에 신경망은 단순한 계산기에서 벗어나 복잡한 문제를 해결하는 뇌처럼 작동할 수 있습니다.
+
+* 즉 입력값 × 가중치 + 편향 계산이 끝난 뒤, 이 결과를 그대로 다음 뉴런으로 보내는 것이 아니라, 활성화 함수를 거쳐 비선형성(non-linearity)을 부여한 뒤 전달합니다.
+ 
+#### 2. 왜 비선형성이 중요한가?
+* 왜 비선형 함수가 필요한가?
+    * 딥러닝은 여러 층(layer)의 뉴런이 데이터를 계층적으로 처리하는 구조입니다.
+    * 그런데 각 층에서 **선형 함수(예: y = ax + b)**만 사용하면?아무리 층을 많이 쌓아도 결국에는 하나의 선형 함수로 뭉쳐져버립니다.
+
+* 👉 즉, 아무리 복잡한 구조라도 복잡한 문제는 절대 풀 수 없게 되는 것이죠.비선형 함수, 즉 활성화 함수가 들어감으로써
+    * 곡선, 경계, 패턴, 반복 같은 복잡한 형태의 데이터도 학습할 수 있게 되고
+    * 이미지 인식, 음성 처리, 자연어 처리 같은 ‘진짜 어려운 문제들’을 풀 수 있게 됩니다.
+
+
+#### 3. 대표적인 활성화 함수 종류
+ 
+**Sigmoid 함수**
+
+* ✔ 특징
+    * 출력값이 항상 0과 1 사이
+    * 입력값이 커질수록 출력은 1에 가까워지고, 작아질수록 0에 가까워짐
+    * 확률처럼 해석하기 좋음 → 출력층에서 이진 분류할 때 유용
+*❗ 단점
+    * 기울기 소실(Vanishing Gradient) 문제→ 입력이 너무 크거나 작으면 기울기가 거의 0이 되어 학습이 안 됨
+    * 중심이 0이 아님 → 학습 수렴이 느림
+
+
+**Tanh 함수 (Hyperbolic Tangent)**
+
+* ✔ 특징
+    * 출력값이 -1과 1 사이
+    * Sigmoid보다 중심이 0에 가까워서 더 좋은 성능을 낼 수 있음
+* ❗ 단점
+    * 여전히 기울기 소실 문제가 있음
+    * 깊은 네트워크에서는 여전히 학습이 느려질 수 있음
+
+* 사용 예시: RNN(순환 신경망), 시간 기반 데이터
+
+
+**ReLU 함수 (Rectified Linear Unit)**
+
+
+* ✔ 특징
+    * 입력이 0보다 작으면 0, 크면 그대로 출력
+    계산이 매우 단순하고 빠름
+    기울기 소실 문제 거의 없음 → 학습 속도 빠르고 수렴도 좋음
+    현재 대부분의 CNN, DNN에서 기본 활성화 함수로 사용
+*❗ 단점
+    * 입력이 음수이면 항상 0 → 뉴런이 죽는 문제(Dead Neuron)
+    * 이를 보완하기 위한 함수들: Leaky ReLU, PReLU 등
+
+* 사용 예시: CNN, DNN 대부분의 심층 네트워크
+
+**Softmax 함수**
+
+* 특징
+    * 다중 클래스 분류 문제에서 출력층에 사용
+    * 모든 출력값을 0~1 사이의 확률로 변환
+    * 전체 클래스 중 어떤 클래스일 가능성이 가장 높은지를 나타냄
+
+* 사용 예시: “고양이 / 개 / 토끼”처럼 3개 이상 클래스 분류 문제
+
+#### 4. 활성화 함수 선택 기준
+
+| 문제 유형 | 추천 활성화 함수 | 이유 | 
+|:-------:|:-------:|:-------:|
+| 회귀 문제 출력층 | 없음 or 선형 함수 | 그대로 수치 예측 | 
+| 이진 분류 출력층 | Sigmoid | 확률(0~1)로 표현 | 
+| 다중 분류 출력층 | Softmax | 각 클래스 확률 계산 | 
+| 일반적인 은닉층 | ReLU / Leaky ReLU | 빠르고 효율적 | 
+| 순환 신경망(RNN 등) | Tanh | 시간 기반 데이터 학습 적합 | 
+
+
+#### 5. 실제 사용 사례로 이해해 보기
+    * 📷 이미지 인식 (CNN)→ ReLU 함수가 기본적으로 사용됨. 빠르고 연산량이 많아도 효율적
+    * 🌀 순환 신경망 (RNN)→ Tanh 함수가 시간 흐름을 잘 표현하고, 상태 유지에 적합
+    * 📊 고양이 vs 강아지 이진 분류→ 출력층에 Sigmoid 함수로 확률 계산
+    * 📚 다중 클래스 텍스트 분류→ Softmax로 각 분류별 확률 계산
+
+#### 6. 핵심 용어 정리표
+
+| 용어 | 정의 | 
+|:-------:|:-------:|
+| 활성화 함수 | 입력값을 비선형적으로 변환하여 출력값을 만드는 함수 | 
+| 비선형성 | 직선이 아닌 곡선적 관계를 학습할 수 있는 능력 | 
+| Sigmoid 함수 | 0~1 사이 출력, 이진 분류에 적합 | 
+| Tanh 함수 | -1~1 출력, 중심이 0으로 수렴 속도 빠름 | 
+| ReLU 함수 | 0보다 작으면 0, 크면 그대로 출력, 기본 함수 | 
+| Softmax 함수 | 다중 분류에서 각 클래스 확률 계산 | 
+
 ---
 
 ## 4. 출력 그림 해석
+
+* mnist_flow_view.py
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow import keras
+import matplotlib.pyplot as plt
+plt.rcParams['font.family'] = 'Malgun Gothic'   # Windows 기본 한글 폰트
+plt.rcParams['axes.unicode_minus'] = False       # 마이너스(-) 기호 깨짐 방지
+
+# 1. 모델에서 가중치만 꺼내기 (Dense 3개)
+model = keras.models.load_model('mnist_pc_model.h5', compile=False)
+dense = [l for l in model.layers if l.get_weights()]
+W = [l.get_weights()[0] for l in dense]   # (784,128), (128,64), (64,10)
+B = [l.get_weights()[1] for l in dense]
+
+# 2. 테스트 이미지 1장 (원하는 인덱스로 변경)
+IDX = 0
+(_, _), (x_test, y_test) = keras.datasets.mnist.load_data()
+img = x_test[IDX].astype(np.float32) / 255.0
+
+# 3. 순전파를 직접 계산 (단계별 값 보관)
+x0 = img.reshape(784)                      # Flatten
+z1 = x0 @ W[0] + B[0]; a1 = np.maximum(z1, 0)   # Dense128 + ReLU
+z2 = a1 @ W[1] + B[1]; a2 = np.maximum(z2, 0)   # Dense64 + ReLU
+z3 = a2 @ W[2] + B[2]
+e = np.exp(z3 - z3.max()); p = e / e.sum()      # Softmax
+
+# 4. 시각화
+fig = plt.figure(figsize=(16, 9))
+gs = fig.add_gridspec(3, 4)
+
+ax = fig.add_subplot(gs[0, 0]); ax.imshow(img, cmap='gray')
+ax.set_title(f'입력 28x28 (정답 {y_test[IDX]})'); ax.axis('off')
+
+ax = fig.add_subplot(gs[0, 1:]); ax.imshow(x0[None, :], aspect='auto', cmap='gray')
+ax.set_title('Flatten: 784개 값으로 펼침'); ax.set_yticks([])
+
+ax = fig.add_subplot(gs[1, :]); ax.imshow(a1[None, :], aspect='auto', cmap='viridis')
+ax.set_title(f'Dense(128)+ReLU 출력 (활성 뉴런 {np.count_nonzero(a1)}/128)'); ax.set_yticks([])
+
+ax = fig.add_subplot(gs[2, 0:2]); ax.imshow(a2[None, :], aspect='auto', cmap='viridis')
+ax.set_title(f'Dense(64)+ReLU 출력 (활성 뉴런 {np.count_nonzero(a2)}/64)'); ax.set_yticks([])
+
+ax = fig.add_subplot(gs[2, 2:]); ax.bar(range(10), p)
+ax.set_xticks(range(10)); ax.set_title(f'Softmax 결과: 예측 = {p.argmax()}')
+
+plt.tight_layout(); plt.show()
+
+# 5. 첫 은닉층 뉴런이 "무엇을 보는지" (가중치 28x28 + 입력과 곱한 기여도)
+top = np.argsort(a1)[-6:][::-1]            # 가장 크게 반응한 뉴런 6개
+fig, axs = plt.subplots(2, 6, figsize=(14, 5))
+for i, n in enumerate(top):
+    w = W[0][:, n].reshape(28, 28)
+    axs[0, i].imshow(w, cmap='seismic', vmin=-abs(w).max(), vmax=abs(w).max())
+    axs[0, i].set_title(f'뉴런 {n} 가중치'); axs[0, i].axis('off')
+    c = (x0 * W[0][:, n]).reshape(28, 28)
+    axs[1, i].imshow(c, cmap='seismic', vmin=-abs(c).max(), vmax=abs(c).max())
+    axs[1, i].set_title(f'입력x가중치 (합+b={z1[n]:.2f})'); axs[1, i].axis('off')
+plt.tight_layout(); plt.show()
+```
+
 
 ### 4.1 첫 번째 창: 입력에서 결과까지의 흐름
 
@@ -107,3 +269,87 @@ p  = softmax(z3)                                # 확률
 2. **뉴런 연결선 그래프**: 레이어 사이를 선으로 잇고 굵기와 색으로 가중치·활성화 표현
 3. **MCU/NPU 이식 분석**: int8 양자화 후 레이어별 값 범위, 오차, 메모리 크기 비교
 4. **오분류 샘플 분석**: 예측이 틀린 이미지의 Softmax와 활성 뉴런 패턴을 정상 샘플과 비교
+
+
+---
+---
+
+
+## 1. 구조(레이어 연결 관계) 시각화
+
+* Netron (가장 추천)
+   * 저장한 mnist_pc_model.h5 파일을 그대로 열면 레이어 연결, shape, 가중치까지 그래프로 보여줍니다.
+   * 설치 없이 https://netron.app 에서 파일을 드래그하면 됩니다. 데스크톱 앱, pip install netron도 가능합니다.
+   * 나중에 TFLite(.tflite)나 ONNX로 변환한 모델도 같은 방식으로 볼 수 있어서, MCU/NPU 쪽 작업에도 유용합니다.
+
+* keras.utils.plot_model (코드 안에서 바로)
+
+```python
+keras.utils.plot_model(
+    model,
+    to_file='model.png',
+    show_shapes=True,
+    show_layer_names=True,
+    show_layer_activations=True
+)
+```
+
+   * Graphviz 프로그램과 pip install pydot이 필요합니다.
+   * 주의: 현재 코드의 Sequential 모델은 model.summary()나 plot_model을 쓰려면 입력이 정의돼 있어야 하는데, 이 코드는 InputLayer가 있어서 바로 동작합니다.
+
+## 2. 학습 과정 중 값 변화 보기
+
+TensorBoard
+
+```python
+tb = keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=1)
+callbacks = [
+    keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True),
+    tb
+]
+```
+* 실행: tensorboard --logdir logs
+
+   * Graphs 탭: 레이어 연산 그래프
+   * Histograms/Distributions 탭: 레이어별 가중치와 편향 분포 변화
+   * Scalars 탭: loss, accuracy 곡선
+
+## 3. 중간 레이어의 실제 출력값(활성화) 보기
+
+각 은닉층이 입력 이미지에 어떻게 반응하는지 직접 뽑아볼 수 있습니다.
+
+```python
+# 각 레이어 출력을 반환하는 모델 만들기
+layer_outputs = [layer.output for layer in model.layers]
+activation_model = keras.Model(inputs=model.inputs, outputs=layer_outputs)
+
+# 테스트 이미지 1장 통과
+sample = x_test[0:1].reshape(1, 28, 28, 1)
+activations = activation_model.predict(sample)
+
+for layer, act in zip(model.layers, activations):
+    print(f"{layer.name:12s} 출력 shape: {act.shape}")
+```
+
+   * 이 값을 matplotlib으로 막대그래프나 히트맵으로 그리면, Dense(128)와 Dense(64)가 어떤 뉴런을 활성화하는지 볼 수 있습니다.
+
+## 4. 가중치 자체 보기
+
+```python
+for layer in model.layers:
+    if layer.weights:
+        w, b = layer.get_weights()
+        print(layer.name, w.shape, b.shape)
+````
+
+   * 첫 Dense(128)의 가중치(784×128)를 28×28 이미지 128장으로 reshape해서 그려보면, 각 뉴런이 어떤 패턴을 찾는지 시각적으로 볼 수 있습니다.
+
+* 추천 순서
+   * 먼저 Netron으로 전체 구조 확인 (가장 빠름)
+   * 학습 과정이 궁금하면 TensorBoard
+   * 레이어 간 데이터 흐름을 직접 보려면 활성화 추출 코드
+
+* 참고로 이 코드는 .h5 저장과 input_shape= 인자를 쓰고 있는데, 최신 Keras 3 환경에서는 경고가 나거나 .keras 형식을 권장합니다.
+* 실행 시 문제가 생기면 model.save('mnist_pc_model.keras')로 바꾸고, InputLayer 대신 keras.Input(shape=(28,28,1))을 쓰면 됩니다.
+
+
