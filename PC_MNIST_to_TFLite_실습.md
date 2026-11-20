@@ -1619,7 +1619,7 @@ python -c "import serial.tools.list_ports; print([p.device for p in serial.tools
 
 ## 부록 C:이미지 파일 확인하기
 
-* C:\Users\user\.keras\datasets\mnist.npz
+* "C:\Users\user\.keras\datasets\mnist.npz"
 * 아래의 코드를 같은 디렉토리에 작성하여 실행하면 
 C:\Users\user\Desktop\MNIST_Images 에 학습에 사용된 파일이 다 보이게 됨.
 
